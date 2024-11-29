@@ -150,11 +150,11 @@ async function initializeOpenAI() {
         const response = await fetch('/admin/api/openai-key');
         const data = await response.json();
         
-        if (!data.apiKey) {
+        if (!data.key) {
             throw new Error('OpenAI API key not found');
         }
 
-        apiKey = data.apiKey;
+        apiKey = data.key;
     } catch (error) {
         console.error('Failed to initialize OpenAI:', error);
         throw error;

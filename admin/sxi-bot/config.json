@@ -46,6 +46,13 @@
           "ratio": 100,
           "style": "default",
           "enabled": true
+        },
+        {
+          "keywords": "1111",
+          "response": "1111",
+          "ratio": 50,
+          "style": "default",
+          "enabled": true
         }
       ]
     },
