@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Line Bot 管理介面</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="/admin/styles.css" rel="stylesheet"/>
+</head>
+<body class="bg-darker text-light">
+<div class="container-fluid">
+<header class="py-3">
+<h2>Line Bot 管理介面</h2>
+</header>
+<main>
+<!-- Bot 選擇器 -->
+<div class="mb-4">
+<select class="form-select" id="botSelector">
+<option value="sxi-bot">SXI Bot</option>
+<option value="fas-bot">FAS Bot</option>
+</select>
+</div>
+<!-- 類別標籤 -->
+<ul class="nav nav-tabs" id="categoryTabs" role="tablist">
+<li class="nav-item" role="presentation">
+<button class="nav-link active" data-bs-target="#products" data-bs-toggle="tab" type="button">產品資訊</button>
+</li>
+<li class="nav-item" role="presentation">
+<button class="nav-link" data-bs-target="#prices" data-bs-toggle="tab" type="button">產品價格</button>
+</li>
+<li class="nav-item" role="presentation">
+<button class="nav-link" data-bs-target="#shipping" data-bs-toggle="tab" type="button">運輸費用</button>
+</li>
+<li class="nav-item" role="presentation">
+<button class="nav-link" data-bs-target="#promotions" data-bs-toggle="tab" type="button">活動優惠</button>
+</li>
+<li class="nav-item" role="presentation">
+<button class="nav-link" data-bs-target="#chat" data-bs-toggle="tab" type="button">閒聊</button>
+</li>
+<li class="nav-item" role="presentation">
+<button class="nav-link" data-bs-target="#noresponse" data-bs-toggle="tab" type="button">敏感詞</button>
+</li>
+</ul>
+<!-- 類別內容 -->
+<div class="tab-content" id="categoryContent">
+<!-- 產品資訊類別 -->
+<div class="tab-pane fade show active" id="products" role="tabpanel">
+<!-- GPT 設定區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">GPT 設定</h5>
+</div>
+<div class="card-body">
+<div class="row">
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">提示詞</label>
+<textarea class="form-control" id="productsPrompt" rows="3"></textarea>
+</div>
+</div>
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">分類範例</label>
+<textarea class="form-control" id="productsExamples" rows="3"></textarea>
+</div>
+</div>
+</div>
+<button class="btn btn-primary" id="saveProductsGPT">儲存 GPT 設定</button>
+</div>
+</div>
+<!-- 回覆規則區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header d-flex justify-content-between align-items-center">
+<h5 class="mb-0">回覆規則</h5>
+<button class="btn btn-primary btn-sm" id="addProductsRule">新增規則</button>
+</div>
+<div class="card-body">
+<div class="table-responsive">
+<table class="table table-dark table-hover">
+<thead>
+<tr>
+<th style="width: 30%">關鍵詞/句</th>
+<th style="width: 40%">固定回覆</th>
+<th style="width: 15%">動態比例</th>
+<th style="width: 15%">語言風格</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody id="productsRuleList"></tbody>
+</table>
+</div>
+<button class="btn btn-primary mt-3" id="saveProductsRules">儲存規則</button>
+</div>
+</div>
+<!-- 1. 產品類別測試區域 (加在 products 頁面最後) -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">測試區域</h5>
+</div>
+<div class="card-body">
+<div class="mb-3">
+<label class="form-label" for="productsTestInput">測試訊息</label>
+<div class="input-group">
+<input class="form-control" id="productsTestInput" placeholder="輸入測試訊息..." type="text"/>
+<button class="btn btn-primary" id="testProducts" type="button">測試</button>
+</div>
+</div>
+<div class="mb-3">
+<label class="form-label">測試結果</label>
+<pre class="bg-darker rounded p-3"><code id="productsTestResult">尚未執行測試</code></pre>
+</div>
+</div>
+</div>
+</div>
+<!-- 產品價格類別 -->
+<div class="tab-pane fade" id="prices" role="tabpanel">
+<!-- GPT 設定區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">GPT 設定</h5>
+</div>
+<div class="card-body">
+<div class="row">
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">提示詞</label>
+<textarea class="form-control" id="pricesPrompt" rows="3"></textarea>
+</div>
+</div>
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">分類範例</label>
+<textarea class="form-control" id="pricesExamples" rows="3"></textarea>
+</div>
+</div>
+</div>
+<button class="btn btn-primary" id="savePricesGPT">儲存 GPT 設定</button>
+</div>
+</div>
+<!-- 回覆規則區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header d-flex justify-content-between align-items-center">
+<h5 class="mb-0">回覆規則</h5>
+<button class="btn btn-primary btn-sm" id="addPricesRule">新增規則</button>
+</div>
+<div class="card-body">
+<div class="table-responsive">
+<table class="table table-dark table-hover">
+<thead>
+<tr>
+<th style="width: 30%">關鍵詞/句</th>
+<th style="width: 40%">固定回覆</th>
+<th style="width: 15%">動態比例</th>
+<th style="width: 15%">語言風格</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody id="pricesRuleList"></tbody>
+</table>
+</div>
+<button class="btn btn-primary mt-3" id="savePricesRules">儲存規則</button>
+</div>
+</div>
+<!-- 2. 價格類別測試區域 (加在 prices 頁面最後) -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">測試區域</h5>
+</div>
+<div class="card-body">
+<div class="mb-3">
+<label class="form-label" for="pricesTestInput">測試訊息</label>
+<div class="input-group">
+<input class="form-control" id="pricesTestInput" placeholder="輸入測試訊息..." type="text"/>
+<button class="btn btn-primary" id="testPrices" type="button">測試</button>
+</div>
+</div>
+<div class="mb-3">
+<label class="form-label">測試結果</label>
+<pre class="bg-darker rounded p-3"><code id="pricesTestResult">尚未執行測試</code></pre>
+</div>
+</div>
+</div>
+</div>
+<!-- 運輸費用類別 -->
+<div class="tab-pane fade" id="shipping" role="tabpanel">
+<!-- GPT 設定區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">GPT 設定</h5>
+</div>
+<div class="card-body">
+<div class="row">
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">提示詞</label>
+<textarea class="form-control" id="shippingPrompt" rows="3"></textarea>
+</div>
+</div>
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">分類範例</label>
+<textarea class="form-control" id="shippingExamples" rows="3"></textarea>
+</div>
+</div>
+</div>
+<button class="btn btn-primary" id="saveShippingGPT">儲存 GPT 設定</button>
+</div>
+</div>
+<!-- 回覆規則區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header d-flex justify-content-between align-items-center">
+<h5 class="mb-0">回覆規則</h5>
+<button class="btn btn-primary btn-sm" id="addShippingRule">新增規則</button>
+</div>
+<div class="card-body">
+<div class="table-responsive">
+<table class="table table-dark table-hover">
+<thead>
+<tr>
+<th style="width: 30%">關鍵詞/句</th>
+<th style="width: 40%">固定回覆</th>
+<th style="width: 15%">動態比例</th>
+<th style="width: 15%">語言風格</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody id="shippingRuleList"></tbody>
+</table>
+</div>
+<button class="btn btn-primary mt-3" id="saveShippingRules">儲存規則</button>
+</div>
+</div>
+<!-- 3. 運輸類別測試區域 (加在 shipping 頁面最後) -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">測試區域</h5>
+</div>
+<div class="card-body">
+<div class="mb-3">
+<label class="form-label" for="shippingTestInput">測試訊息</label>
+<div class="input-group">
+<input class="form-control" id="shippingTestInput" placeholder="輸入測試訊息..." type="text"/>
+<button class="btn btn-primary" id="testShipping" type="button">測試</button>
+</div>
+</div>
+<div class="mb-3">
+<label class="form-label">測試結果</label>
+<pre class="bg-darker rounded p-3"><code id="shippingTestResult">尚未執行測試</code></pre>
+</div>
+</div>
+</div>
+</div>
+<!-- 活動優惠類別 -->
+<div class="tab-pane fade" id="promotions" role="tabpanel">
+<!-- GPT 設定區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">GPT 設定</h5>
+</div>
+<div class="card-body">
+<div class="row">
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">提示詞</label>
+<textarea class="form-control" id="promotionsPrompt" rows="3"></textarea>
+</div>
+</div>
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">分類範例</label>
+<textarea class="form-control" id="promotionsExamples" rows="3"></textarea>
+</div>
+</div>
+</div>
+<button class="btn btn-primary" id="savePromotionsGPT">儲存 GPT 設定</button>
+</div>
+</div>
+<!-- 回覆規則區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header d-flex justify-content-between align-items-center">
+<h5 class="mb-0">回覆規則</h5>
+<button class="btn btn-primary btn-sm" id="addPromotionsRule">新增規則</button>
+</div>
+<div class="card-body">
+<div class="table-responsive">
+<table class="table table-dark table-hover">
+<thead>
+<tr>
+<th style="width: 30%">關鍵詞/句</th>
+<th style="width: 40%">固定回覆</th>
+<th style="width: 15%">動態比例</th>
+<th style="width: 15%">語言風格</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody id="promotionsRuleList"></tbody>
+</table>
+</div>
+<button class="btn btn-primary mt-3" id="savePromotionsRules">儲存規則</button>
+</div>
+</div>
+<!-- 4. 活動優惠類別測試區域 (加在 promotions 頁面最後) -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">測試區域</h5>
+</div>
+<div class="card-body">
+<div class="mb-3">
+<label class="form-label" for="promotionsTestInput">測試訊息</label>
+<div class="input-group">
+<input class="form-control" id="promotionsTestInput" placeholder="輸入測試訊息..." type="text"/>
+<button class="btn btn-primary" id="testPromotions" type="button">測試</button>
+</div>
+</div>
+<div class="mb-3">
+<label class="form-label">測試結果</label>
+<pre class="bg-darker rounded p-3"><code id="promotionsTestResult">尚未執行測試</code></pre>
+</div>
+</div>
+</div>
+</div>
+<!-- 閒聊類別 -->
+<div class="tab-pane fade" id="chat" role="tabpanel">
+<!-- GPT 設定區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">GPT 設定</h5>
+</div>
+<div class="card-body">
+<div class="row">
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">提示詞</label>
+<textarea class="form-control" id="chatPrompt" rows="3"></textarea>
+</div>
+</div>
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">分類範例</label>
+<textarea class="form-control" id="chatExamples" rows="3"></textarea>
+</div>
+</div>
+</div>
+<button class="btn btn-primary" id="saveChatGPT">儲存 GPT 設定</button>
+</div>
+</div>
+<!-- 回覆規則區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header d-flex justify-content-between align-items-center">
+<h5 class="mb-0">回覆規則</h5>
+<button class="btn btn-primary btn-sm" id="addChatRule">新增規則</button>
+</div>
+<div class="card-body">
+<div class="table-responsive">
+<table class="table table-dark table-hover">
+<thead>
+<tr>
+<th style="width: 30%">關鍵詞/句</th>
+<th style="width: 40%">固定回覆</th>
+<th style="width: 15%">動態比例</th>
+<th style="width: 15%">語言風格</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody id="chatRuleList"></tbody>
+</table>
+</div>
+<button class="btn btn-primary mt-3" id="saveChatRules">儲存規則</button>
+</div>
+</div>
+<!-- 5. 閒聊類別測試區域 (加在 chat 頁面最後) -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">測試區域</h5>
+</div>
+<div class="card-body">
+<div class="mb-3">
+<label class="form-label" for="chatTestInput">測試訊息</label>
+<div class="input-group">
+<input class="form-control" id="chatTestInput" placeholder="輸入測試訊息..." type="text"/>
+<button class="btn btn-primary" id="testChat" type="button">測試</button>
+</div>
+</div>
+<div class="mb-3">
+<label class="form-label">測試結果</label>
+<pre class="bg-darker rounded p-3"><code id="chatTestResult">尚未執行測試</code></pre>
+</div>
+</div>
+</div>
+</div>
+<!-- 敏感詞類別 -->
+<div class="tab-pane fade" id="noresponse" role="tabpanel">
+<!-- GPT 設定區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header">
+<h5 class="mb-0">GPT 設定</h5>
+</div>
+<div class="card-body">
+<div class="row">
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">提示詞</label>
+<textarea class="form-control" id="noresponsePrompt" rows="3"></textarea>
+</div>
+</div>
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">分類範例</label>
+<textarea class="form-control" id="noresponseExamples" rows="3"></textarea>
+</div>
+</div>
+</div>
+<button class="btn btn-primary" id="saveNoresponseGPT">儲存 GPT 設定</button>
+</div>
+</div>
+<!-- 回覆規則區塊 -->
+<div class="card bg-dark mt-3">
+<div class="card-header d-flex justify-content-between align-items-center">
+<h5 class="mb-0">回覆規則</h5>
+<button class="btn btn-primary btn-sm" id="addNoresponseRule">新增規則</button>
+</div>
+<div class="card-body">
+<div class="table-responsive">
+<table class="table table-dark table-hover">
+<thead>
+<tr>
+<th style="width: 30%">關鍵詞/句</th>
+<th style="width: 40%">固定回覆</th>
+<th style="width: 15%">動態比例</th>
+<th style="width: 15%">語言風格</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody id="noresponseRuleList"></tbody>
+</table>
+</div>
+<button class="btn btn-primary mt-3" id="saveNoresponseRules">儲存規則</button>
+</div>
+</div>
+<!-- 測試區塊 -->
+<div class="card bg-dark mt-3 mb-4">
+<div class="card-header">
+<h5 class="mb-0">測試區</h5>
+</div>
+<div class="card-body">
+<div class="mb-3">
+<label class="form-label">測試訊息</label>
+<textarea class="form-control" id="noresponseTestInput" placeholder="輸入測試訊息..." rows="2"></textarea>
+</div>
+<button class="btn btn-primary" id="testNoresponse">測試</button>
+<div class="mt-3">
+<label class="form-label">測試結果</label>
+<div class="border rounded p-3 bg-darker">
+<pre class="mb-0" id="noresponseTestResult"></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- JavaScript 引用 -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/admin/api.js"></script>
+<script src="/admin/ui.js"></script>
+<script src="/admin/bot.js"></script>
+<script src="/admin/gpt.js"></script>
+<script src="/admin/admin.js"></script>
+<script>
+    // 初始化
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            await window.gpt.initializeOpenAI();
+            window.ui.showAlert('success', '系統初始化成功');
+        } catch (error) {
+            console.error('Initialization failed:', error);
+            window.ui.showAlert('error', '初始化失敗: ' + error.message);
+        }
+    });
+</script>
+</body>
+</html>

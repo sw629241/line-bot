@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line BOT</title>
+    <style>
+        /* 星空背景效果 */
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #000428, #004e92);
+            color: white;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 1;
+        }
+
+        /* 狀態指示器 */
+        #status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .status-online {
+            background-color: #4CAF50;
+            box-shadow: 0 0 10px #4CAF50;
+        }
+
+        .status-offline {
+            background-color: #f44336;
+            box-shadow: 0 0 10px #f44336;
+        }
+
+        .status-checking {
+            background-color: #FFC107;
+            box-shadow: 0 0 10px #FFC107;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.5; }
+        }
+
+        h1, p {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, 0); /* 水平居中 */
+            opacity: 0.8; /* 半透明 */
+            z-index: 2;
+        }
+
+        h1 {
+            top: 20%; /* 靠上方位置 */
+            font-size: 3rem;
+        }
+
+        p {
+            top: 30%; /* 位於 h1 下方 */
+            font-size: 1.5rem;
+        }
+
+        /* 星星動畫 */
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkling 2s infinite ease-in-out;
+        }
+
+        @keyframes twinkling {
+            0%, 100% {
+                opacity: 0.5;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 星空層 -->
+    <div id="stars"></div>
+
+    <!-- 狀態指示器 -->
+    <div id="status-indicator">
+        <div id="status-dot" class="status-checking"></div>
+        <span id="status-text">檢查中...</span>
+    </div>
+
+    <!-- 主內容 -->
+    <h1>Line BOT</h1>
+    <p>這是一個測試頁面，用於確認伺服器運行狀態。</p>
+
+    <script>
+        // 創建星星
+        function createStars() {
+            const stars = document.getElementById('stars');
+            const count = 200;
+
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                stars.appendChild(star);
+            }
+        }
+
+        // 更新狀態顯示
+        function updateStatus(status, message) {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            
+            // Remove all existing status classes
+            statusDot.classList.remove('status-online', 'status-offline', 'status-checking');
+            
+            // Add the new status class
+            statusDot.classList.add(`status-${status}`);
+            
+            // Update the status text
+            statusText.textContent = message;
+        }
+
+        // 隨機調整文字水平位置
+        function randomizeTextPosition() {
+            const h1 = document.querySelector('h1');
+            const p = document.querySelector('p');
+
+            const randomOffset = () => (Math.random() - 0.5) * 30; // 隨機偏移範圍
+            h1.style.transform = `translate(calc(-50% + ${randomOffset()}px), 0)`;
+            p.style.transform = `translate(calc(-50% + ${randomOffset()}px), 0)`;
+        }
+
+        // 檢查 Line Bot 狀態
+        function checkBotStatus() {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            
+            // Set to checking state
+            updateStatus('checking', 'Checking...');
+            
+            fetch('/health')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'online') {
+                        updateStatus('online', 'Service Online');
+                    } else {
+                        updateStatus('offline', 'Service Offline');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking status:', error);
+                    updateStatus('offline', 'Service Offline');
+                });
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            createStars();
+            randomizeTextPosition(); // 調整文字位置
+            checkBotStatus();
+            // 每 30 秒檢查一次狀態
+            setInterval(checkBotStatus, 30000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  linebot:
+    build: .
+    container_name: linebot
+    expose:
+      - "80"       # All endpoints
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=80
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true
