@@ -460,6 +460,7 @@
 </div>
 </div>
 </div>
+</div>
 </main>
 </div>
 <!-- JavaScript 引用 -->
@@ -474,6 +475,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
         try {
             await window.gpt.initializeOpenAI();
+            
             window.ui.showAlert('success', '系統初始化成功');
         } catch (error) {
             console.error('Initialization failed:', error);
