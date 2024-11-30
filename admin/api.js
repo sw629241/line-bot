@@ -1,12 +1,9 @@
 // API 請求輔助函數
 async function fetchWithAuth(url, options = {}) {
-    const credentials = btoa('admin:123');
     const defaultOptions = {
         headers: {
-            'Authorization': `Basic ${credentials}`,
             'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+        }
     };
 
     const requestStartTime = Date.now();
@@ -21,7 +18,7 @@ async function fetchWithAuth(url, options = {}) {
         const timeoutId = setTimeout(() => {
             controller.abort();
             console.log('請求超時，已經過時間:', Date.now() - requestStartTime, 'ms');
-        }, 60000); // 增加到 60 秒
+        }, 60000); // 60 秒超時
 
         const response = await fetch(url, { 
             ...defaultOptions, 
@@ -43,57 +40,21 @@ async function fetchWithAuth(url, options = {}) {
             timestamp: new Date().toISOString()
         });
         
-        if (response.status === 401) {
-            console.error('認證失敗，請檢查用戶名和密碼');
-            window.ui.showAlert('error', '認證失敗，請重新登入');
-            throw new Error('認證失敗');
-        }
-        
-        const contentType = response.headers.get('content-type');
         if (!response.ok) {
-            let errorMessage;
-            if (contentType && contentType.includes('application/json')) {
-                const errorData = await response.json();
-                console.error('API 錯誤回應 (JSON):', errorData);
-                errorMessage = errorData.error || `HTTP 錯誤! 狀態: ${response.status}`;
-            } else {
-                const errorText = await response.text();
-                console.error('API 錯誤回應 (Text):', errorText);
-                errorMessage = `HTTP 錯誤! 狀態: ${response.status}`;
-            }
-            throw new Error(errorMessage);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
-            console.log('API 回應數據:', data);
-            return data;
-        }
-        
-        return await response.text();
+        return response;
     } catch (error) {
-        const requestDuration = Date.now() - requestStartTime;
-        if (error.name === 'AbortError') {
-            console.error('請求超時:', {
-                duration: requestDuration + 'ms',
-                url,
-                method: options.method || 'GET'
-            });
-            throw new Error(`請求超時（${requestDuration}ms），請稍後重試`);
-        }
-        console.error('API 請求失敗:', {
-            error: error.message,
-            duration: requestDuration + 'ms',
-            url,
-            method: options.method || 'GET'
-        });
+        console.error('請求失敗:', error);
         throw error;
     }
 }
 
 // 獲取配置
 async function getConfig(botId) {
-    return await fetchWithAuth(`/admin/api/get-config/${botId}`);
+    const response = await fetchWithAuth(`/admin/api/get-config/${botId}`);
+    return await response.json();
 }
 
 // 保存配置

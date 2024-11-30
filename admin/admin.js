@@ -1,6 +1,8 @@
 // 全局狀態
-let currentBot = 'sxi-bot';
-let currentCategory = 'products';
+window.admin = {
+    currentBot: 'sxi-bot',
+    currentCategory: 'products'
+};
 
 // 配置數據結構
 const categoryConfigs = {
@@ -40,33 +42,53 @@ async function loadCategoryConfig(category) {
 }
 
 // 初始化事件監聽器
-function initializeEventListeners() {
-    // Bot 選擇器變更事件
-    document.querySelector('#botSelector').addEventListener('change', async (e) => {
-        currentBot = e.target.value;
-        await loadCategoryConfig(currentCategory);
+async function initializeEventListeners() {
+    console.log('開始設置事件監聽器...');
+    
+    // 等待 DOM 完全加載
+    await new Promise(resolve => {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', resolve);
+        } else {
+            resolve();
+        }
     });
 
+    // 等待一小段時間確保組件都已加載
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    console.log('設置 Bot 選擇器事件...');
+    // Bot 選擇器變更事件
+    const botSelector = document.querySelector('#botSelector');
+    if (botSelector) {
+        botSelector.addEventListener('change', async (e) => {
+            window.admin.currentBot = e.target.value;
+            await loadCategoryConfig(window.admin.currentCategory);
+        });
+    } else {
+        console.error('找不到 Bot 選擇器元素');
+    }
+
+    console.log('設置類別標籤事件...');
     // 類別標籤點擊事件
     document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
         tab.addEventListener('click', async () => {
-            currentCategory = tab.getAttribute('data-bs-target').slice(1);
-            await loadCategoryConfig(currentCategory);
+            window.admin.currentCategory = tab.getAttribute('data-bs-target').slice(1);
+            await loadCategoryConfig(window.admin.currentCategory);
         });
     });
 
-    // 設置儲存按鈕事件
-    setupSaveButtons();
+    // 設置其他按鈕事件
+    await setupSaveButtons();
+    await setupAddRuleButtons();
+    await setupTestButtons();
     
-    // 設置新增規則按鈕事件
-    setupAddRuleButtons();
-    
-    // 設置測試按鈕事件
-    setupTestButtons();
+    console.log('事件監聽器設置完成');
 }
 
 // 設置儲存按鈕的事件處理
-function setupSaveButtons() {
+async function setupSaveButtons() {
+    console.log('設置儲存按鈕事件...');
     // GPT 設定儲存按鈕
     document.querySelectorAll('[id$="GPT"]').forEach(button => {
         button.addEventListener('click', () => {
@@ -85,19 +107,17 @@ function setupSaveButtons() {
 }
 
 // 設置新增規則按鈕事件
-function setupAddRuleButtons() {
+async function setupAddRuleButtons() {
+    console.log('設置新增規則按鈕事件...');
     document.querySelectorAll('[id^="add"][id$="Rule"]').forEach(button => {
         button.addEventListener('click', () => {
-            // 從按鈕 ID 中提取類別名稱（例如：addProductsRule -> products）
             const category = button.id.replace('add', '').replace('Rule', '').toLowerCase();
             console.log('新增規則按鈕被點擊:', button.id, '-> 類別:', category);
             
-            // 確保 categoryConfigs 中有該類別
             if (!categoryConfigs[category]) {
                 categoryConfigs[category] = { rules: [] };
             }
             
-            // 確保 rules 陣列存在
             if (!categoryConfigs[category].rules) {
                 categoryConfigs[category].rules = [];
             }
@@ -108,7 +128,8 @@ function setupAddRuleButtons() {
 }
 
 // 設置測試按鈕事件
-function setupTestButtons() {
+async function setupTestButtons() {
+    console.log('設置測試按鈕事件...');
     document.querySelectorAll('[id^="test"]').forEach(button => {
         button.addEventListener('click', async () => {
             const category = button.id.replace('test', '').toLowerCase();
@@ -119,13 +140,11 @@ function setupTestButtons() {
             }
             
             try {
-                // 顯示載入中
                 const result = document.getElementById(`${category}TestResult`);
                 if (result) {
                     result.textContent = '處理中...';
                 }
                 
-                // 執行測試
                 await window.bot.testCategory(category, input.value.trim());
             } catch (error) {
                 console.error('測試失敗:', error);
@@ -242,10 +261,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('初始化開始...');
         
         // 初始化事件監聽器
-        initializeEventListeners();
+        await initializeEventListeners();
         
         // 載入初始類別配置
-        await loadCategoryConfig(currentCategory);
+        await loadCategoryConfig(window.admin.currentCategory);
         
         console.log('初始化完成');
     } catch (error) {
@@ -256,8 +275,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // 導出全局變量和函數
 window.admin = {
-    currentBot,
-    currentCategory,
+    currentBot: window.admin.currentBot,
+    currentCategory: window.admin.currentCategory,
     categoryConfigs,
     loadCategoryConfig,
     addNewRule,

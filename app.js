@@ -11,32 +11,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 80;
 
-// Basic Authentication Middleware
-const basicAuth = (req, res, next) => {
-  // 檢查是否是靜態資源請求
-  if (req.path.endsWith('.css') || req.path.endsWith('.js')) {
-    return next();
-  }
-
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader) {
-    res.setHeader('WWW-Authenticate', 'Basic realm="Admin Area"');
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-
-  const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-  const user = auth[0];
-  const pass = auth[1];
-
-  if (user === 'admin' && pass === '123') {
-    next();
-  } else {
-    res.setHeader('WWW-Authenticate', 'Basic realm="Admin Area"');
-    res.status(401).json({ error: 'Invalid credentials' });
-  }
-};
-
 // Line bot configurations
 const primaryLineConfig = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
@@ -63,8 +37,8 @@ app.use(express.static('.', {
   }
 }));
 
-// Serve admin panel with authentication
-app.use('/admin', basicAuth, express.static('admin', {
+// Serve admin panel
+app.use('/admin', express.static('admin', {
   setHeaders: (res, path) => {
     if (path.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript');
@@ -74,8 +48,8 @@ app.use('/admin', basicAuth, express.static('admin', {
   }
 }));
 
-// Serve admin.html for /admin/ path with authentication
-app.get('/admin/', basicAuth, (req, res) => {
+// Serve admin.html for /admin/ path
+app.get('/admin/', (req, res) => {
   res.sendFile('admin.html', { root: './admin' });
 });
 
@@ -87,7 +61,7 @@ app.use(express.json({
 }));
 
 // Admin API Routes
-app.get('/admin/api/get-config/:botId', basicAuth, async (req, res) => {
+app.get('/admin/api/get-config/:botId', async (req, res) => {
   try {
     const { botId } = req.params;
     const configPath = path.join(process.cwd(), 'admin', botId, 'config.json');
@@ -119,7 +93,7 @@ app.get('/admin/api/get-config/:botId', basicAuth, async (req, res) => {
   }
 });
 
-app.post('/admin/api/save-config/:botId', basicAuth, async (req, res) => {
+app.post('/admin/api/save-config/:botId', async (req, res) => {
   try {
     const { botId } = req.params;
     const configDir = path.join(process.cwd(), 'admin', botId);
@@ -137,7 +111,7 @@ app.post('/admin/api/save-config/:botId', basicAuth, async (req, res) => {
   }
 });
 
-app.get('/admin/api/openai-key', basicAuth, (req, res) => {
+app.get('/admin/api/openai-key', (req, res) => {
   const openaiKey = process.env.OPENAI_API_KEY;
   if (!openaiKey) {
     res.status(404).json({ error: 'OpenAI API key not found' });

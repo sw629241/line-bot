@@ -67,8 +67,26 @@ Required environment variables:
 ## Project Structure
 ```
 linebot/
-├── src/                    # Source files
-├── admin/                  # Admin panel files
+├── src/                # Source files
+├── admin/             # Admin panel files
+│   ├── admin.html    # Admin interface main file
+│   ├── components/   # Interface components directory
+│   │   ├── header.html        # Page header
+│   │   ├── bot-selector.html  # Bot selector
+│   │   ├── category-tabs.html # Category tabs
+│   │   ├── gpt-settings.html  # GPT settings block
+│   │   ├── reply-rules.html   # Reply rules block
+│   │   └── test-area.html     # Test area
+│   ├── js/          # Backend JavaScript files
+│   │   ├── admin.js # Main admin logic
+│   │   ├── api.js   # API call functionality
+│   │   ├── bot.js   # Bot configuration management
+│   │   ├── gpt.js   # GPT related functionality
+│   │   └── ui.js    # UI operation functionality
+│   ├── fas-bot/     # FAS Bot configuration
+│   │   └── config.json
+│   └── sxi-bot/     # SXI Bot configuration
+│       └── config.json
 ├── docker-compose.yml      # Docker composition
 ├── Dockerfile             # Docker build instructions
 ├── app.js                 # Main application file
@@ -95,7 +113,14 @@ linebot/
 ├── src/                # 源代碼目錄
 │   └── ...            # Bot 相關代碼
 ├── admin/             # 管理後台目錄
-│   ├── admin.html    # 管理界面
+│   ├── admin.html    # 管理界面主文件
+│   ├── components/   # 界面組件目錄
+│   │   ├── header.html        # 頁面頭部
+│   │   ├── bot-selector.html  # Bot 選擇器
+│   │   ├── category-tabs.html # 類別標籤
+│   │   ├── gpt-settings.html  # GPT 設定區塊
+│   │   ├── reply-rules.html   # 回覆規則區塊
+│   │   └── test-area.html     # 測試區域
 │   ├── js/          # 後台 JavaScript 文件
 │   │   ├── admin.js # 主要管理邏輯
 │   │   ├── api.js   # API 調用功能

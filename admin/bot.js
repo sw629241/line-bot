@@ -20,6 +20,23 @@ async function loadConfig() {
     }
 }
 
+// 載入當前 Bot
+async function loadCurrentBot() {
+    try {
+        console.log('載入當前 Bot 配置...');
+        const config = await loadConfig();
+        if (config) {
+            console.log('當前 Bot 配置載入成功');
+            window.ui.showAlert('success', '配置載入成功');
+            return config;
+        }
+    } catch (error) {
+        console.error('載入當前 Bot 失敗:', error);
+        window.ui.showAlert('error', '載入當前 Bot 失敗: ' + error.message);
+        throw error;
+    }
+}
+
 // 保存配置
 async function saveConfig(config) {
     try {
@@ -62,6 +79,7 @@ async function testCategory(category) {
 // 導出 Bot 函數
 window.bot = {
     loadConfig,
+    loadCurrentBot,
     saveConfig,
     testCategory
 };

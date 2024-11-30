@@ -71,6 +71,53 @@ All endpoints are configured and tested successfully:
 
 ## 🔧 Core Functions Documentation
 
+### 界面組件 (Components)
+
+#### header.html
+- **用途**: 頁面頭部組件
+- **功能**: 顯示網站標題和基本樣式設置
+- **依賴**: Bootstrap CSS
+
+#### bot-selector.html
+- **用途**: Bot 選擇器組件
+- **功能**: 提供 Bot 切換功能
+- **選項**: 
+  - SXI Bot
+  - FAS Bot
+
+#### category-tabs.html
+- **用途**: 類別標籤組件
+- **功能**: 提供不同功能類別的導航標籤
+- **類別**:
+  - 產品資訊
+  - 產品價格
+  - 運輸費用
+  - 活動優惠
+  - 閒聊
+  - 敏感詞
+
+#### gpt-settings.html
+- **用途**: GPT 設定區塊組件
+- **功能**: 
+  - 提示詞設置
+  - 分類範例管理
+  - GPT 配置保存
+
+#### reply-rules.html
+- **用途**: 回覆規則區塊組件
+- **功能**:
+  - 關鍵詞/句管理
+  - 固定回覆設置
+  - 動態比例調整
+  - 語言風格選擇
+
+#### test-area.html
+- **用途**: 測試區域組件
+- **功能**:
+  - 測試訊息輸入
+  - 即時回應測試
+  - 測試結果顯示
+
 ### API Functions (api.js)
 
 #### loadBotConfig(botId)
