@@ -49,8 +49,8 @@ const secondaryLineConfig = {
 };
 
 // Create webhook handlers
-const { handleWebhook: handlePrimaryWebhook } = createWebhookHandler('primary');
-const { handleWebhook: handleSecondaryWebhook } = createWebhookHandler('secondary');
+const primaryWebhookHandler = createWebhookHandler('primary');
+const secondaryWebhookHandler = createWebhookHandler('secondary');
 
 // Configure static file serving
 app.use(express.static('.', {
@@ -147,23 +147,19 @@ app.get('/admin/api/openai-key', basicAuth, (req, res) => {
 });
 
 // Primary webhook route
-app.post('/webhook1', middleware(primaryLineConfig), async (req, res) => {
-  try {
-    await handlePrimaryWebhook(req, res);
-  } catch (error) {
+app.post('/webhook1', middleware(primaryLineConfig), (req, res) => {
+  primaryWebhookHandler.handleWebhook(req, res).catch(error => {
     console.error('Primary webhook error:', error);
     res.status(500).json({ error: error.message });
-  }
+  });
 });
 
 // Secondary webhook route
-app.post('/webhook2', middleware(secondaryLineConfig), async (req, res) => {
-  try {
-    await handleSecondaryWebhook(req, res);
-  } catch (error) {
+app.post('/webhook2', middleware(secondaryLineConfig), (req, res) => {
+  secondaryWebhookHandler.handleWebhook(req, res).catch(error => {
     console.error('Secondary webhook error:', error);
     res.status(500).json({ error: error.message });
-  }
+  });
 });
 
 // Health check routes
