@@ -1,24 +1,124 @@
 import { Client } from '@line/bot-sdk';
 import dotenv from 'dotenv';
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
+import { Configuration, OpenAIApi } from 'openai';
 
 // Load environment variables
 dotenv.config();
 
 // Logging utility
-function logEvent(botType, event) {
-  const logDir = path.join(process.cwd(), 'logs');
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir);
-  }
+async function logEvent(botType, event) {
+    try {
+        const logDir = path.join(process.cwd(), 'logs');
+        await fs.mkdir(logDir, { recursive: true });
+        
+        const logFile = path.join(logDir, `${botType}_webhook_events.log`);
+        const logEntry = `${new Date().toISOString()} - Bot: ${botType}, Event Type: ${event.type}, Source: ${JSON.stringify(event.source)}\n`;
+        
+        await fs.appendFile(logFile, logEntry);
+    } catch (error) {
+        console.error('Error writing to log file:', error);
+    }
+}
 
-  const logFile = path.join(logDir, `${botType}_webhook_events.log`);
-  const logEntry = `${new Date().toISOString()} - Bot: ${botType}, Event Type: ${event.type}, Source: ${JSON.stringify(event.source)}\n`;
-  
-  fs.appendFile(logFile, logEntry, (err) => {
-    if (err) console.error('Error writing to log file:', err);
-  });
+// Load bot configuration from file
+async function loadBotConfig(botType) {
+    try {
+        // 修改配置文件路徑
+        const configPath = path.join(process.cwd(), 'admin', `${botType === 'primary' ? 'fas' : 'sxi'}-bot`, 'config.json');
+        console.log('Loading config from:', configPath);
+        const configData = await fs.readFile(configPath, 'utf8');
+        return JSON.parse(configData);
+    } catch (error) {
+        console.error(`Error loading ${botType} bot config:`, error);
+        return null;
+    }
+}
+
+// Initialize OpenAI configuration
+const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY
+});
+const openai = new OpenAIApi(configuration);
+
+// Call OpenAI API
+async function callOpenAI(messages) {
+    try {
+        const response = await openai.createChatCompletion({
+            model: "gpt-3.5-turbo",
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 1000
+        });
+        return response.data.choices[0].message.content;
+    } catch (error) {
+        console.error('Error calling OpenAI:', error);
+        throw error;
+    }
+}
+
+// Process message with GPT
+async function processMessageWithGPT(message, botConfig) {
+    try {
+        // 檢查配置是否有效
+        if (!botConfig || !botConfig.categories) {
+            throw new Error('無效的配置');
+        }
+
+        // 構建系統提示詞
+        const systemPrompt = `你是一個專業的客服助手。你的任務是根據用戶的訊息，從不同類別中選擇最合適的回應。
+
+請遵循以下規則：
+1. 先判斷用戶訊息屬於哪個類別（products、prices、shipping、promotions、chat、noresponse）
+2. 使用該類別的 systemPrompt 和 examples 作為參考
+3. 在該類別的 rules 中尋找最相關的規則
+4. 根據規則的 ratio 和 style 生成回應：
+   - ratio = "0"：完全使用原文回覆
+   - ratio = "50"：保持核心信息，可重組句子
+   - ratio = "100"：保留核心點，使用新表達
+5. 如果找不到相關規則，使用該類別的預設回應
+
+請以 JSON 格式返回結果：
+{
+    "category": "選擇的類別名稱",
+    "rule": {
+        "keywords": "匹配的關鍵字",
+        "response": "規則中的回覆",
+        "ratio": "比例",
+        "style": "風格"
+    },
+    "reply": "最終生成的回覆"
+}`;
+
+        // 為每個類別添加範例和系統提示
+        let categoriesInfo = '';
+        for (const [category, config] of Object.entries(botConfig.categories)) {
+            categoriesInfo += `\n=== ${category} 類別 ===\n`;
+            categoriesInfo += `系統提示：${config.systemPrompt || '無'}\n`;
+            categoriesInfo += `範例：${config.examples || '無'}\n`;
+            categoriesInfo += `規則：${JSON.stringify(config.rules, null, 2)}\n`;
+        }
+
+        // 構建用戶提示詞
+        const userPrompt = `類別資訊：${categoriesInfo}\n\n用戶訊息：${message}`;
+
+        // 獲取 GPT 回應
+        const gptResponse = await callOpenAI([
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+        ]);
+
+        // 解析回應
+        const result = JSON.parse(gptResponse);
+        console.log('GPT Response:', result);
+
+        // 返回生成的回覆
+        return result.reply;
+    } catch (error) {
+        console.error('Error processing message with GPT:', error);
+        throw error;
+    }
 }
 
 // Webhook configuration factory
@@ -47,7 +147,7 @@ export function createWebhookHandler(botType = 'primary') {
         events.map(async (event) => {
           try {
             // Log every incoming event
-            logEvent(botType, event);
+            await logEvent(botType, event);
             return await handleWebhookEvent(event);
           } catch (error) {
             console.error(`Error handling event in ${botType} webhook:`, error);
@@ -82,31 +182,38 @@ export function createWebhookHandler(botType = 'primary') {
     }
   }
 
-  // Handle message events with more complex logic
+  // Handle message events with GPT integration
   async function handleMessageEvent(event) {
     if (event.message.type === 'text') {
-      const messageText = event.message.text.toLowerCase().trim();
-      
-      // Simple command handling
-      const commands = {
-        'help': 'Available commands: help, status, time',
-        'status': `${botType.toUpperCase()} bot is online and ready!`,
-        'time': `Current time: ${new Date().toLocaleString()}`
-      };
-
-      const response = commands[messageText] || 
-        `${botType.toUpperCase()} webhook received: ${event.message.text}`;
-
-      const echo = { 
-        type: 'text', 
-        text: response
-      };
+      const messageText = event.message.text;
       
       try {
-        return await client.replyMessage(event.replyToken, echo);
+        // Load bot configuration
+        const botConfig = await loadBotConfig(botType);
+        if (!botConfig) {
+          throw new Error('Bot configuration not available');
+        }
+
+        // Process message with GPT
+        const response = await processMessageWithGPT(messageText, botConfig);
+        
+        // Send response back to user
+        const replyMessage = { 
+          type: 'text', 
+          text: response || '抱歉，我現在無法正確處理您的訊息。'
+        };
+        
+        return await client.replyMessage(event.replyToken, replyMessage);
       } catch (error) {
-        console.error(`Error replying to message in ${botType} webhook:`, error);
-        throw error;
+        console.error(`Error processing message in ${botType} webhook:`, error);
+        
+        // Send error message to user
+        const errorMessage = { 
+          type: 'text', 
+          text: '抱歉，我現在無法正確處理您的訊息。請稍後再試。'
+        };
+        
+        return await client.replyMessage(event.replyToken, errorMessage);
       }
     }
     return null;
