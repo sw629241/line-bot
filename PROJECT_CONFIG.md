@@ -69,6 +69,74 @@ All endpoints are configured and tested successfully:
 - Access logs: `/data/logs/proxy-host-2_access.log`
 - Error logs: `/data/logs/proxy-host-2_error.log`
 
+## 🔧 Core Functions Documentation
+
+### API Functions (api.js)
+
+#### loadBotConfig(botId)
+- **Purpose**: Load bot configuration file
+- **Parameters**: 
+  - `botId` (string): Bot ID (e.g., 'fas-bot' or 'sxi-bot')
+- **Returns**: Promise<Object>
+- **Description**: Reads bot configuration from filesystem, returns default config if file doesn't exist
+
+#### callOpenAI(messages)
+- **Purpose**: Call OpenAI API
+- **Parameters**:
+  - `messages` (array): Message array containing role and content
+- **Returns**: Promise<string>
+- **Description**: Process messages using OpenAI GPT-3.5-turbo model
+
+#### processMessageWithGPT(message, botConfig)
+- **Purpose**: Process user message and generate response
+- **Parameters**:
+  - `message` (string): User message
+  - `botConfig` (object): Bot configuration
+- **Returns**: Promise<string>
+- **Description**: Analyzes user message and generates appropriate response based on configuration
+
+### Webhook Handlers
+
+#### primaryWebhookHandler(req, res)
+- **File**: webhook/primary.js
+- **Purpose**: Handle primary bot webhook requests
+- **Parameters**:
+  - `req` (Request): Express request object
+  - `res` (Response): Express response object
+- **Description**: Processes messages from LINE platform using fas-bot configuration
+
+#### secondaryWebhookHandler(req, res)
+- **File**: webhook/secondary.js
+- **Purpose**: Handle secondary bot webhook requests
+- **Parameters**:
+  - `req` (Request): Express request object
+  - `res` (Response): Express response object
+- **Description**: Processes messages from LINE platform using sxi-bot configuration
+
+### Configuration Structure
+
+#### Bot Configuration Schema
+```javascript
+{
+  categories: {
+    products: { systemPrompt: string, examples: string, rules: array },
+    prices: { systemPrompt: string, examples: string, rules: array },
+    shipping: { systemPrompt: string, examples: string, rules: array },
+    promotions: { systemPrompt: string, examples: string, rules: array },
+    chat: { systemPrompt: string, examples: string, rules: array },
+    noresponse: { systemPrompt: string, examples: string, rules: array }
+  }
+}
+```
+
+### Development Guidelines
+
+1. All asynchronous functions must use async/await syntax
+2. Error handling should use try/catch structures
+3. All functions should have appropriate error logging
+4. Configuration-related functions should handle file-not-found scenarios
+5. Webhook handlers should always return appropriate HTTP status codes
+
 ## 📝 Last Updated
 - Date: 2024-01-09
 - Status: All endpoints tested and verified
