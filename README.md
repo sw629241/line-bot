@@ -1,239 +1,171 @@
-# LINE Bot Project
+# LINE Bot 專案
 
-## Overview
-A Node.js-based LINE Bot application with dual webhook support, running in Docker with Nginx Proxy Manager for SSL termination.
+## 概述
+基於 Node.js 的 LINE Bot 應用程式，支援雙 webhook，使用 Docker 運行並通過 Nginx 代理管理器進行 SSL 終止。
 
-## Features
-- Dual LINE Bot support with separate webhooks
-- SSL/TLS encryption via Let's Encrypt
-- Docker containerization
-- Nginx reverse proxy
-- Health check monitoring
+## 功能特點
+- 支援雙 LINE Bot 與獨立 webhook
+- 通過 Let's Encrypt 實現 SSL/TLS 加密
+- Docker 容器化部署
+- Nginx 反向代理
+- 健康檢查監控
 
-## Prerequisites
-- Docker and Docker Compose
+## 前置需求
+- Docker 和 Docker Compose
 - Node.js
-- Nginx Proxy Manager
-- LINE Developer Account
-- Domain name with DNS configured
+- Nginx 代理管理器
+- LINE 開發者帳號
+- 已配置 DNS 的網域名稱
 
-## Installation
-1. Clone the repository
+## 安裝步驟
+1. 克隆儲存庫
 ```bash
-git clone [your-repository-url]
+git clone [你的儲存庫網址]
 cd linebot
 ```
 
-2. Create environment file
+2. 建立環境檔案
 ```bash
 cp .env.example .env
-# Edit .env with your LINE channel credentials
+# 編輯 .env 並填入你的 LINE channel 憑證
 ```
 
-3. Build and start the containers
+3. 建構並啟動容器
 ```bash
 docker-compose up -d
 ```
 
-## Configuration
-- Configure Nginx Proxy Manager for your domain
-- Set up SSL certificates through Let's Encrypt
-- Configure LINE Developer Console with webhook URLs:
-  - Primary: https://[your-domain]/webhook1
-  - Secondary: https://[your-domain]/webhook2
+## 配置說明
+- 為你的網域配置 Nginx 代理管理器
+- 通過 Let's Encrypt 設置 SSL 憑證
+- 在 LINE 開發者控制台配置 webhook 網址：
+  - 主要： https://[你的網域]/webhook1
+  - 次要： https://[你的網域]/webhook2
 
-## Development
+## 開發指南
 ```bash
-# Install dependencies
+# 安裝依賴
 npm install
 
-# Start development server
+# 啟動開發伺服器
 npm run dev
+
+# 執行測試
+npm test
+
+# 建構生產版本
+npm run build
 ```
-
-## Production Deployment
-The application is deployed using Docker and Nginx Proxy Manager:
-- Application runs on port 80 inside Docker
-- Nginx Proxy Manager handles SSL termination
-- All traffic is forced to HTTPS
-
-## Environment Variables
-Required environment variables:
-- LINE_CHANNEL_ACCESS_TOKEN
-- LINE_CHANNEL_SECRET
-- LINE_CHANNEL_ACCESS_TOKEN_2
-- LINE_CHANNEL_SECRET_2
-
-## Project Structure
-```
-linebot/
-├── src/                # Source files
-├── admin/             # Admin panel files
-│   ├── admin.html    # Admin interface main file
-│   ├── components/   # Interface components directory
-│   │   ├── header.html        # Page header
-│   │   ├── bot-selector.html  # Bot selector
-│   │   ├── category-tabs.html # Category tabs
-│   │   ├── gpt-settings.html  # GPT settings block
-│   │   ├── reply-rules.html   # Reply rules block
-│   │   └── test-area.html     # Test area
-│   ├── js/          # Backend JavaScript files
-│   │   ├── admin.js # Main admin logic
-│   │   ├── api.js   # API call functionality
-│   │   ├── bot.js   # Bot configuration management
-│   │   ├── gpt.js   # GPT related functionality
-│   │   └── ui.js    # UI operation functionality
-│   ├── fas-bot/     # FAS Bot configuration
-│   │   └── config.json
-│   └── sxi-bot/     # SXI Bot configuration
-│       └── config.json
-├── docker-compose.yml      # Docker composition
-├── Dockerfile             # Docker build instructions
-├── app.js                 # Main application file
-└── package.json          # Dependencies and scripts
-```
-
-## Health Check
-Monitor application health at:
-```
-https://[your-domain]/health
-```
-
-## License
-[Your License]
-
-# Line Bot with GPT Integration
-
-這是一個整合了 GPT 功能的 Line Bot 專案，包含管理後台界面。
 
 ## 專案結構
-
 ```
 linebot/
-├── src/                # 源代碼目錄
-│   └── ...            # Bot 相關代碼
-├── admin/             # 管理後台目錄
-│   ├── admin.html    # 管理界面主文件
-│   ├── components/   # 界面組件目錄
-│   │   ├── header.html        # 頁面頭部
-│   │   ├── bot-selector.html  # Bot 選擇器
-│   │   ├── category-tabs.html # 類別標籤
-│   │   ├── gpt-settings.html  # GPT 設定區塊
-│   │   ├── reply-rules.html   # 回覆規則區塊
-│   │   └── test-area.html     # 測試區域
-│   ├── js/          # 後台 JavaScript 文件
-│   │   ├── admin.js # 主要管理邏輯
-│   │   ├── api.js   # API 調用功能
-│   │   ├── bot.js   # Bot 配置管理
-│   │   ├── gpt.js   # GPT 相關功能
-│   │   └── ui.js    # UI 操作功能
-│   ├── fas-bot/     # FAS Bot 配置
-│   │   └── config.json
-│   └── sxi-bot/     # SXI Bot 配置
-│       └── config.json
-└── ...
+├── admin/              # 管理介面
+│   ├── components/     # UI 組件
+│   ├── api.js         # API 函數
+│   └── admin.js       # 管理邏輯
+├── webhook/           # Webhook 處理器
+│   ├── primary.js    # 主要 Bot
+│   └── secondary.js  # 次要 Bot
+├── config/           # 配置檔案
+├── test/            # 測試檔案
+└── app.js          # 主應用程式
 ```
 
-## 管理後台功能說明
+## 環境變數
+```
+LINE_CHANNEL_ACCESS_TOKEN=你的主要頻道存取權杖
+LINE_CHANNEL_SECRET=你的主要頻道密鑰
+LINE_CHANNEL_ACCESS_TOKEN_2=你的次要頻道存取權杖
+LINE_CHANNEL_SECRET_2=你的次要頻道密鑰
+PORT=80
+NODE_ENV=production
+```
 
-### 模組說明
+## API 端點
+- `GET /health`: 健康檢查
+- `POST /webhook1`: 主要 Bot webhook
+- `POST /webhook2`: 次要 Bot webhook
+- `GET /admin`: 管理介面
+- `GET /admin/api/get-config/:botId`: 獲取 Bot 配置
+- `POST /admin/api/save-config/:botId`: 保存 Bot 配置
+- `POST /admin/api/test/:botId/:category`: 測試回應
 
-1. **API 模組** (api.js)
-   - 處理所有 API 請求
-   - 包含認證和錯誤處理
-   - 提供統一的 API 調用介面
+## 管理介面功能
+管理介面提供以下功能：
 
-2. **GPT 模組** (gpt.js)
-   - 管理 GPT 配置
-   - 提供測試功能
-   - 處理 GPT 回應生成
+### Bot 選擇
+- 切換不同的 Bot 配置
+- 顯示當前活動的 Bot
 
-3. **Bot 模組** (bot.js)
-   - 管理 Bot 配置
-   - 處理配置的加載和保存
-   - 提供 Bot 相關功能
+### 類別管理
+支援以下回應類別：
+1. 產品資訊
+2. 價格查詢
+3. 運送資訊
+4. 促銷活動
+5. 一般對話
+6. 無回應處理
 
-4. **UI 模組** (ui.js)
-   - 處理所有 UI 操作
-   - 管理動態元素創建
-   - 提供提示和警告功能
-
-5. **管理模組** (admin.js)
-   - 協調其他模組
-   - 管理全局狀態
-   - 處理事件監聽
-
-### Bot 配置說明
-
-- **sxi-bot**: 對應 /webhook1 及其配置
-- **fas-bot**: 對應 /webhook2 及其配置
-
-### 功能區塊
-
-#### 標籤功能
-每個標籤包含：
+### 配置管理
+每個類別包含兩個主要部分：
 1. GPT 設定
 2. 回覆規則
 
 #### GPT 設定
 1. **提示詞**
-   - 作為類別的預設回應
-   - 處理無法匹配規則時的回覆
+   - 設定 GPT 的基本行為
+   - 定義回應風格和限制
 
-2. **分類範例**
-   - 使用 Q&A 形式
-   - 提供額外的語義理解參考
+2. **範例**
+   - 提供對話範例
+   - 設定期望的互動模式
 
 #### 回覆規則
-1. **關鍵詞**
-   - 觸發回覆的語義匹配
+1. **關鍵字**
+   - 設定觸發條件
+   - 支援多關鍵字匹配
 
-2. **固定回覆**
-   - 當動態比例為 0 時使用
-   - 需要完全相同的回覆
+2. **匹配率**
+   - 設定匹配精確度
+   - 範圍：0-100%
 
-3. **動態比例**
-   - 0: 使用完全相同的固定回覆
-   - 50: 保持核心信息，允許改變表達
-   - 100: 基於核心信息生成全新回覆
+3. **回應內容**
+   - 設定固定回應文本
+   - 支援多行文本
 
-4. **語言風格**
-   - 專業：使用專業術語和精確描述
-   - 親切：平易近人的表達方式
-   - 少女：活潑可愛，加入表情符號
-   - 幽默：輕鬆詼諧的表達方式
+4. **回應風格**
+   - 定義回應語氣
+   - 可選：專業、友善、簡潔
 
-### 訊息處理流程
+### 測試功能
+- 即時測試訊息回應
+- 顯示匹配規則資訊
+- 提供回應生成過程
 
-```
-用戶訊息 
-  ↓
-GPT 處理
-  - 判斷語義意圖
-  - 確定類別
-  - 評估信心度
-  - 匹配關鍵詞
-  - 生成回覆
-  ↓
-Bot 處理
-  ↓
-Line API 發送
-```
+## 部署說明
+1. 確保所有環境變數正確配置
+2. 使用 docker-compose 進行部署
+3. 配置 Nginx 代理和 SSL
+4. 驗證 webhook 連接
 
-## 開發說明
+## 維護指南
+- 定期檢查日誌
+- 監控系統資源
+- 更新 SSL 憑證
+- 備份配置檔案
 
-### 環境變數
-需要在 `.env` 文件中配置：
-- LINE_CHANNEL_ACCESS_TOKEN
-- LINE_CHANNEL_SECRET
-- LINE_CHANNEL_ACCESS_TOKEN_2
-- LINE_CHANNEL_SECRET_2
-- OPENAI_API_KEY
+## 故障排除
+1. 檢查日誌檔案
+2. 驗證環境變數
+3. 確認網路連接
+4. 測試 webhook 端點
 
-### 安裝和運行
-```bash
-npm install
-npm start
-```
+## 貢獻指南
+1. Fork 專案
+2. 建立特性分支
+3. 提交變更
+4. 發起合併請求
 
-管理後台訪問：`http://your-domain/admin`
+## 授權
+MIT 授權
