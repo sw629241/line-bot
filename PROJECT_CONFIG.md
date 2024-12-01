@@ -1,18 +1,20 @@
-# LINE Bot 專案配置
+# LINE Bot 專案配置文檔
 
-## 系統配置
+## 系統環境配置
+
+### 基礎環境
 - **環境**: 生產環境
 - **主要程式語言**: JavaScript
 - **執行環境**: Node.js
 - **部署方式**: Docker 搭配 Nginx 代理管理器
 
-## 伺服器配置
+### 伺服器配置
 - **網域**: linebot.sxi.com.tw
 - **埠口**: 80 (內部), 443 (SSL/TLS)
 - **SSL**: 已啟用 Let's Encrypt
 - **代理管理器**: nginx-proxy-manager
 
-## 端點
+### 端點配置
 所有端點均已配置並測試成功：
 - **主應用程式**: `https://linebot.sxi.com.tw/`
 - **健康檢查**: `https://linebot.sxi.com.tw/health`
@@ -20,29 +22,19 @@
 - **主要 Webhook**: `https://linebot.sxi.com.tw/webhook1`
 - **次要 Webhook**: `https://linebot.sxi.com.tw/webhook2`
 
-## 重要環境變數
-- `LINE_CHANNEL_ACCESS_TOKEN`: 已配置
-- `LINE_CHANNEL_SECRET`: 已配置
-- `LINE_CHANNEL_ACCESS_TOKEN_2`: 已配置
-- `LINE_CHANNEL_SECRET_2`: 已配置
+### 環境變數
+- `LINE_CHANNEL_ACCESS_TOKEN`: LINE 主要機器人存取令牌
+- `LINE_CHANNEL_SECRET`: LINE 主要機器人密鑰
+- `LINE_CHANNEL_ACCESS_TOKEN_2`: LINE 次要機器人存取令牌
+- `LINE_CHANNEL_SECRET_2`: LINE 次要機器人密鑰
+- `OPENAI_API_KEY`: OpenAI API 密鑰
 
-## 外部服務
+### 外部服務整合
 - **訊息 API**: LINE Messaging API (主要和次要)
 - **代理服務**: Nginx 代理管理器
 - **SSL 提供者**: Let's Encrypt
 
-## Webhook 配置
-### 主要機器人 (webhook1)
-- **網址**: `https://linebot.sxi.com.tw/webhook1`
-- **SSL**: 強制啟用
-- **狀態**: 已驗證且運作中
-
-### 次要機器人 (webhook2)
-- **網址**: `https://linebot.sxi.com.tw/webhook2`
-- **SSL**: 強制啟用
-- **狀態**: 已驗證且運作中
-
-## 安全配置
+### 安全配置
 - **SSL/TLS**: 已啟用並強制用於所有路由
 - **HSTS**: 已啟用，max-age=63072000
 - **代理標頭**:
@@ -51,139 +43,181 @@
   - X-Forwarded-For
   - X-Real-IP
 
-## 核心依賴
-- Express.js
-- @line/bot-sdk
-- Docker
-- Nginx Proxy Manager
-
-## 部署架構
+### 部署架構
 - Docker 容器化
 - Nginx 反向代理與 SSL 終止
 - 單一埠口 (80) 容器通訊
 - SSL/TLS 由 Nginx Proxy Manager 處理
 
-## 監控
+### 監控配置
 - 健康檢查端點配置
 - 存取日誌： `/data/logs/proxy-host-2_access.log`
 - 錯誤日誌： `/data/logs/proxy-host-2_error.log`
 
-## 核心函數文件
+## 系統架構
 
-### 界面組件 (Components)
+### 1. 核心模塊
 
-#### header.html
-- **用途**: 頁面頭部組件
-- **功能**: 顯示網站標題和基本樣式設置
-- **依賴**: Bootstrap CSS
+#### 1.1 入口模塊 (`app.js`)
+- **功能職責**：
+  * 服務器配置和啟動
+  * 路由管理和靜態文件服務
+  * 管理面板和 Webhook API 端點配置
+  * 環境變量管理
+- **主要依賴**：
+  * Express.js
+  * @line/bot-sdk
+  * dotenv
 
-#### bot-selector.html
-- **用途**: Bot 選擇器組件
-- **功能**: 提供 Bot 切換功能
-- **選項**:
-  - SXI Bot
-  - FAS Bot
+#### 1.2 後端核心 (`/admin/server.js`)
+- **功能職責**：
+  * LINE Webhook 事件處理
+  * OpenAI API 調用
+  * 配置文件管理
+  * 系統日誌記錄
+- **主要依賴**：
+  * @line/bot-sdk
+  * openai
+  * fs/promises
+  * path
 
-#### category-tabs.html
-- **用途**: 類別標籤組件
-- **功能**: 提供不同功能類別的導航標籤
-- **類別**:
-  - 產品資訊
-  - 產品價格
-  - 運輸費用
-  - 活動優惠
-  - 一般對話
-  - 敏感詞
+#### 1.3 前端核心 (`/admin/messageService.js`)
+- **功能職責**：
+  * GPT 設置管理
+  * 消息測試和格式化
+  * 前端事件處理
+- **主要依賴**：
+  * window.bot：配置操作
+  * window.admin：管理功能
+  * window.ui：界面交互
+  * window.api：API 調用
 
-#### gpt-settings.html
-- **用途**: GPT 設定區塊組件
-- **功能**:
-  - 提示詞設置
-  - 分類範例管理
-  - GPT 配置保存
+#### 1.4 API 服務 (`/admin/apiService.js`)
+- **功能職責**：
+  * API 請求統一處理
+  * 外部服務整合
+  * 配置管理接口
+- **主要功能**：
+  * `callLineAPI(endpoint, data)`
+  * `callOpenAI(messages)`
+  * `handleWebhook(req, res)`
 
-#### reply-rules.html
-- **用途**: 回覆規則區塊組件
-- **功能**:
-  - 關鍵詞/句管理
-  - 固定回覆設置
-  - 動態比例調整
-  - 語言風格選擇
+#### 1.5 管理界面 (`/admin/admin.js`)
+- **功能職責**：
+  * 管理面板渲染
+  * 用戶界面事件處理
+  * 前端狀態管理
+- **主要功能**：
+  * `initialize()`
+  * `handleEvents()`
+  * `updateUI()`
 
-#### test-area.html
-- **用途**: 測試區域組件
-- **功能**:
-  - 測試訊息輸入
-  - 即時回應測試
-  - 測試結果顯示
+### 2. 數據流
 
-### API 函數 (api.js)
+#### 2.1 前端流程
+```
+用戶操作 -> messageService.js 處理 -> apiService.js 請求 -> admin.js 更新界面
+```
 
-#### loadBotConfig(botId)
-- **目的**: 載入 Bot 配置檔案
-- **參數**:
-  - `botId` (string): Bot ID (例如 'fas-bot' 或 'sxi-bot')
-- **返回**: Promise<Object>
-- **描述**: 從檔案系統讀取 Bot 配置，若檔案不存在則返回預設配置
+#### 2.2 後端流程
+```
+LINE Webhook -> server.js 處理 -> OpenAI 生成 -> LINE 回覆
+```
 
-#### callOpenAI(messages)
-- **目的**: 呼叫 OpenAI API
-- **參數**:
-  - `messages` (array): 訊息陣列包含角色和內容
-- **返回**: Promise<string>
-- **描述**: 使用 OpenAI GPT-3.5-turbo 模型處理訊息
+### 3. 配置系統
 
-#### processMessageWithGPT(message, botConfig)
-- **目的**: 處理用戶訊息並生成回應
-- **參數**:
-  - `message` (string): 用戶訊息
-  - `botConfig` (object): Bot 配置
-- **返回**: Promise<string>
-- **描述**: 分析用戶訊息並根據配置生成適當的回應
-
-### Webhook 處理器
-
-#### primaryWebhookHandler(req, res)
-- **檔案**: webhook/primary.js
-- **目的**: 處理主要 Bot Webhook 請求
-- **參數**:
-  - `req` (Request): Express 請求物件
-  - `res` (Response): Express 回應物件
-- **描述**: 使用 fas-bot 配置處理來自 LINE 平台的訊息
-
-#### secondaryWebhookHandler(req, res)
-- **檔案**: webhook/secondary.js
-- **目的**: 處理次要 Bot Webhook 請求
-- **參數**:
-  - `req` (Request): Express 請求物件
-  - `res` (Response): Express 回應物件
-- **描述**: 使用 sxi-bot 配置處理來自 LINE 平台的訊息
-
-### 配置結構
-
-#### Bot 配置結構
-```javascript
+#### 3.1 機器人配置 (`/admin/[bot-id]/config.json`)
+```json
 {
-  categories: {
-    products: { systemPrompt: string, examples: string, rules: array },
-    prices: { systemPrompt: string, examples: string, rules: array },
-    shipping: { systemPrompt: string, examples: string, rules: array },
-    promotions: { systemPrompt: string, examples: string, rules: array },
-    chat: { systemPrompt: string, examples: string, rules: array },
-    sensitive: { systemPrompt: string, examples: string, rules: array }
+  "categories": {
+    "product": { 
+      "systemPrompt": string,
+      "examples": string,
+      "rules": array
+    },
+    "price": { ... },
+    "shipping": { ... },
+    "promotion": { ... },
+    "chat": { ... },
+    "sensitive": { ... }
   }
 }
 ```
 
-### 開發指南
+#### 3.2 界面組件
+- **header.html**: 頁面頭部組件
+- **bot-selector.html**: Bot 選擇器
+- **category-tabs.html**: 類別標籤
+- **gpt-settings.html**: GPT 設定區塊
+- **reply-rules.html**: 回覆規則區塊
+- **test-area.html**: 測試區域
 
-1. 所有非同步函數必須使用 async/await 語法
-2. 錯誤處理應使用 try/catch 結構
-3. 所有函數應有適當的錯誤記錄
-4. 配置相關函數應處理檔案不存在的情況
-5. Webhook 處理器應始終返回適當的 HTTP 狀態碼
+## 開發規範
 
-## 最後更新
-- 日期： 2024-01-09
-- 狀態： 所有端點均已測試和驗證
-- SSL： 已啟用並正確配置
+### 1. 代碼規範
+- 使用 async/await 處理異步操作
+- 使用 try/catch 進行錯誤處理
+- 確保適當的錯誤日誌記錄
+- 遵循環境隔離原則：
+  * 前端不直接操作文件系統
+  * 後端不依賴瀏覽器環境
+  * 共享代碼考慮運行環境差異
+
+### 2. 待優化事項
+- **重複代碼整合**：
+  * 消息處理（processMessageWithGPT）
+  * 事件處理（handleMessageEvent 等）
+- **建議方案**：
+  * 創建共享模塊（types.js, constants.js, utils.js）
+  * 抽象消息處理邏輯
+  * 實現依賴注入
+
+### 3. 安全考慮
+- 所有配置文件操作需進行權限驗證
+- API 調用需要適當的錯誤處理
+- 敏感信息使用環境變量管理
+
+### 4. 錯誤處理機制
+- **Webhook 錯誤處理**：
+  * 請求簽名驗證
+  * JSON 解析錯誤處理
+  * LINE API 錯誤處理
+  * OpenAI API 錯誤處理
+- **錯誤日誌記錄**：
+  * 錯誤類型分類
+  * 錯誤堆疊追蹤
+  * 請求相關信息記錄
+  * 系統狀態記錄
+
+### 5. 安全性更新
+- **請求驗證**：
+  * LINE Webhook 簽名驗證
+  * 請求來源驗證
+  * 請求內容驗證
+- **錯誤響應**：
+  * 統一錯誤響應格式
+  * 適當的 HTTP 狀態碼
+  * 敏感信息過濾
+- **安全標頭**：
+  * Content-Security-Policy
+  * X-Content-Type-Options
+  * X-Frame-Options
+  * X-XSS-Protection
+
+### 6. 系統監控
+- **性能監控**：
+  * 請求響應時間
+  * API 調用延遲
+  * 系統資源使用
+- **錯誤監控**：
+  * 錯誤率統計
+  * 錯誤類型分析
+  * 系統健康狀態
+- **日誌管理**：
+  * 結構化日誌格式
+  * 日誌輪轉策略
+  * 日誌分析工具
+
+## 版本信息
+- 最後更新：2024-01-09
+- 狀態：所有端點已測試和驗證

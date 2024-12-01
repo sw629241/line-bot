@@ -25,39 +25,39 @@
             <div class="tab-content" id="categoryContent">
                 <!-- 各個類別的面板 -->
                 <div class="tab-pane fade show active" id="products" role="tabpanel">
-                    <div class="gpt-settings-container"></div>
-                    <div class="reply-rules-container"></div>
-                    <div class="test-area-container"></div>
+                    <div id="productsGptSettings" class="gpt-settings-container"></div>
+                    <div id="productsReplyRules" class="reply-rules-container"></div>
+                    <div id="productsTestArea" class="test-area-container"></div>
                 </div>
 
                 <div class="tab-pane fade" id="prices" role="tabpanel">
-                    <div class="gpt-settings-container"></div>
-                    <div class="reply-rules-container"></div>
-                    <div class="test-area-container"></div>
+                    <div id="pricesGptSettings" class="gpt-settings-container"></div>
+                    <div id="pricesReplyRules" class="reply-rules-container"></div>
+                    <div id="pricesTestArea" class="test-area-container"></div>
                 </div>
 
                 <div class="tab-pane fade" id="shipping" role="tabpanel">
-                    <div class="gpt-settings-container"></div>
-                    <div class="reply-rules-container"></div>
-                    <div class="test-area-container"></div>
+                    <div id="shippingGptSettings" class="gpt-settings-container"></div>
+                    <div id="shippingReplyRules" class="reply-rules-container"></div>
+                    <div id="shippingTestArea" class="test-area-container"></div>
                 </div>
 
                 <div class="tab-pane fade" id="promotions" role="tabpanel">
-                    <div class="gpt-settings-container"></div>
-                    <div class="reply-rules-container"></div>
-                    <div class="test-area-container"></div>
+                    <div id="promotionsGptSettings" class="gpt-settings-container"></div>
+                    <div id="promotionsReplyRules" class="reply-rules-container"></div>
+                    <div id="promotionsTestArea" class="test-area-container"></div>
                 </div>
 
                 <div class="tab-pane fade" id="chat" role="tabpanel">
-                    <div class="gpt-settings-container"></div>
-                    <div class="reply-rules-container"></div>
-                    <div class="test-area-container"></div>
+                    <div id="chatGptSettings" class="gpt-settings-container"></div>
+                    <div id="chatReplyRules" class="reply-rules-container"></div>
+                    <div id="chatTestArea" class="test-area-container"></div>
                 </div>
 
                 <div class="tab-pane fade" id="sensitive" role="tabpanel">
-                    <div class="gpt-settings-container"></div>
-                    <div class="reply-rules-container"></div>
-                    <div class="test-area-container"></div>
+                    <div id="sensitiveGptSettings" class="gpt-settings-container"></div>
+                    <div id="sensitiveReplyRules" class="reply-rules-container"></div>
+                    <div id="sensitiveTestArea" class="test-area-container"></div>
                 </div>
             </div>
         </main>
@@ -66,21 +66,10 @@
     <!-- JavaScript 依賴 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- 管理界面腳本，注意加載順序 -->
-    <script src="/admin/ui.js"></script>
-    <script src="/admin/api.js"></script>
-    <script src="/admin/admin.js"></script>
-    <script src="/admin/bot.js"></script>
-    <script src="/admin/gpt.js"></script>
-
     <!-- 初始化腳本 -->
-    <script>
-        // 全局管理對象
-        window.admin = {
-            currentBot: 'sxi-bot',
-            currentCategory: 'products'
-        };
-
+    <script type="module">
+        import { initAdmin } from '/admin/admin.js';
+        
         // 加載組件
         async function loadComponent(containerId, componentPath) {
             try {
@@ -100,58 +89,25 @@
                 // 加載所有組件
                 await loadComponent('botSelectorContainer', 'bot-selector.html');
                 await loadComponent('categoryTabsContainer', 'category-tabs.html');
-
-                // 加載每個類別的組件
-                const categories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
-                for (const category of categories) {
-                    const containers = document.querySelectorAll(`#${category} .gpt-settings-container, #${category} .reply-rules-container, #${category} .test-area-container`);
-                    containers[0].innerHTML = await (await fetch('/admin/components/gpt-settings.html')).text();
-                    containers[1].innerHTML = await (await fetch('/admin/components/reply-rules.html')).text();
-                    containers[2].innerHTML = await (await fetch('/admin/components/test-area.html')).text();
-
-                    // 設置特定的 ID
-                    const gptPrompt = containers[0].querySelector('.gpt-prompt');
-                    const gptExamples = containers[0].querySelector('.gpt-examples');
-                    const saveGptBtn = containers[0].querySelector('.save-gpt');
-                    const ruleList = containers[1].querySelector('.rule-list');
-                    const addRuleBtn = containers[1].querySelector('.add-rule');
-                    const saveRulesBtn = containers[1].querySelector('.save-rules');
-                    const testInput = containers[2].querySelector('.test-input');
-                    const testButton = containers[2].querySelector('.test-button');
-                    const testResult = containers[2].querySelector('.test-result');
-
-                    if (gptPrompt) gptPrompt.id = `${category}Prompt`;
-                    if (gptExamples) gptExamples.id = `${category}Examples`;
-                    if (saveGptBtn) saveGptBtn.id = `save${category.charAt(0).toUpperCase() + category.slice(1)}GPT`;
-                    if (ruleList) ruleList.id = `${category}RuleList`;
-                    if (addRuleBtn) addRuleBtn.id = `add${category.charAt(0).toUpperCase() + category.slice(1)}Rule`;
-                    if (saveRulesBtn) saveRulesBtn.id = `save${category.charAt(0).toUpperCase() + category.slice(1)}Rules`;
-                    if (testInput) testInput.id = `${category}TestInput`;
-                    if (testButton) testButton.id = `test${category.charAt(0).toUpperCase() + category.slice(1)}`;
-                    if (testResult) testResult.id = `${category}TestResult`;
+                
+                // 加載所有容器組件
+                const containers = [
+                    ...document.querySelectorAll('.gpt-settings-container'),
+                    ...document.querySelectorAll('.reply-rules-container'),
+                    ...document.querySelectorAll('.test-area-container')
+                ];
+                
+                for (const container of containers) {
+                    const type = container.className.split('-')[0] + '-' + container.className.split('-')[1];
+                    await loadComponent(container.id, `${type}.html`);
                 }
-
-                console.log('組件加載完成');
-
-                // 初始化其他功能
-                if (window.gpt && typeof window.gpt.initializeOpenAI === 'function') {
-                    await window.gpt.initializeOpenAI();
-                    console.log('GPT 初始化完成');
-                }
-
-                if (window.bot && typeof window.bot.loadCurrentBot === 'function') {
-                    await window.bot.loadCurrentBot();
-                    console.log('Bot 配置加載完成');
-                }
-
-                if (window.ui && typeof window.ui.setupEventListeners === 'function') {
-                    window.ui.setupEventListeners();
-                    console.log('事件監聽器設置完成');
-                }
-
+                
+                // 初始化管理介面
+                await initAdmin();
+                
                 console.log('初始化完成');
             } catch (error) {
-                console.error('初始化過程中發生錯誤:', error);
+                console.error('初始化失敗:', error);
             }
         });
     </script>

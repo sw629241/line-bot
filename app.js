@@ -1,15 +1,23 @@
 import express from 'express';
 import { middleware } from '@line/bot-sdk';
 import dotenv from 'dotenv';
-import { createWebhookHandler } from './src/lineWebhook.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { Client } from '@line/bot-sdk';
+import { handleMessageEvent, processMessageWithGPT } from './admin/server.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 80;
+
+// Enable JSON parsing middleware
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Line bot configurations
 const primaryLineConfig = {
@@ -22,9 +30,9 @@ const secondaryLineConfig = {
   channelSecret: process.env.LINE_CHANNEL_SECRET_2
 };
 
-// Create webhook handlers
-const primaryWebhookHandler = createWebhookHandler('primary');
-const secondaryWebhookHandler = createWebhookHandler('secondary');
+// Create Line clients
+const primaryClient = new Client(primaryLineConfig);
+const secondaryClient = new Client(secondaryLineConfig);
 
 // Configure static file serving
 app.use(express.static('.', {
@@ -50,146 +58,145 @@ app.use('/admin', express.static('admin', {
 
 // Serve admin.html for /admin/ path
 app.get('/admin/', (req, res) => {
-  res.sendFile('admin.html', { root: './admin' });
+  res.sendFile(path.join(process.cwd(), 'admin', 'admin.html'));
 });
 
-// Raw body parser
-app.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf;
-  }
-}));
-
-// Admin API Routes
+// Serve bot configuration files
 app.get('/admin/api/get-config/:botId', async (req, res) => {
   try {
-    const { botId } = req.params;
+    const botId = req.params.botId;
+    const configPath = path.join(process.cwd(), 'admin', botId, 'config.json');
+    const configData = await fs.readFile(configPath, 'utf8');
+    res.json(JSON.parse(configData));
+  } catch (error) {
+    console.error('Error reading config:', error);
+    res.status(500).json({ error: 'Failed to read config file' });
+  }
+});
+
+// Save bot configuration
+app.post('/admin/api/save-config/:botId', express.json(), async (req, res) => {
+  try {
+    const botId = req.params.botId;
     const configPath = path.join(process.cwd(), 'admin', botId, 'config.json');
     
+    // 檢查目錄是否存在，如果不存在則創建
+    const dirPath = path.join(process.cwd(), 'admin', botId);
     try {
-      const configData = await fs.readFile(configPath, 'utf8');
-      res.json(JSON.parse(configData));
-    } catch (error) {
-      if (error.code === 'ENOENT') {
-        // 如果檔案不存在，返回預設配置
-        const defaultConfig = {
-          categories: {
-            products: { systemPrompt: '', examples: '', rules: [] },
-            prices: { systemPrompt: '', examples: '', rules: [] },
-            shipping: { systemPrompt: '', examples: '', rules: [] },
-            promotions: { systemPrompt: '', examples: '', rules: [] },
-            chat: { systemPrompt: '', examples: '', rules: [] },
-            sensitive: { systemPrompt: '', examples: '', rules: [] }
-          }
-        };
-        res.json(defaultConfig);
-      } else {
-        throw error;
-      }
+      await fs.access(dirPath);
+    } catch {
+      await fs.mkdir(dirPath, { recursive: true });
     }
-  } catch (error) {
-    console.error('Error getting config:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
-app.post('/admin/api/save-config/:botId', async (req, res) => {
-  try {
-    const { botId } = req.params;
-    const configDir = path.join(process.cwd(), 'admin', botId);
-    const configPath = path.join(configDir, 'config.json');
-    
-    console.log('Saving config:', {
-      botId,
-      configDir,
-      configPath,
-      bodySize: JSON.stringify(req.body).length
-    });
+    // 驗證配置格式
+    if (!req.body || !req.body.categories) {
+      return res.status(400).json({ error: 'Invalid configuration format' });
+    }
 
-    // 確保目錄存在
-    await fs.mkdir(configDir, { recursive: true });
-    
-    // 先將配置寫入臨時文件
-    const tempPath = `${configPath}.tmp`;
-    await fs.writeFile(tempPath, JSON.stringify(req.body, null, 2));
-    
-    // 確認臨時文件寫入成功
-    const tempContent = await fs.readFile(tempPath, 'utf8');
-    JSON.parse(tempContent); // 驗證 JSON 格式
-    
-    // 如果驗證成功，將臨時文件重命名為正式文件
-    await fs.rename(tempPath, configPath);
-    
-    console.log('Config saved successfully');
+    // 保存配置
+    await fs.writeFile(configPath, JSON.stringify(req.body, null, 2), 'utf8');
     res.json({ success: true });
   } catch (error) {
-    console.error('Error saving config:', {
-      error: error.message,
-      stack: error.stack,
-      botId: req.params.botId
+    console.error('Error saving config:', error);
+    res.status(500).json({ 
+      error: 'Failed to save config file',
+      details: error.message 
     });
-    res.status(500).json({ error: error.message });
   }
 });
 
+// Test category endpoint
+app.post('/admin/api/test-category/:botId', express.json(), async (req, res) => {
+  try {
+    const botId = req.params.botId;
+    const { message } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const response = await processMessageWithGPT(message, botId === 'sxi-bot' ? 'primary' : 'secondary');
+    res.json({ response });
+  } catch (error) {
+    console.error('Error testing category:', error);
+    res.status(500).json({ error: 'Failed to test category' });
+  }
+});
+
+// Get OpenAI API key
 app.get('/admin/api/openai-key', (req, res) => {
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (!openaiKey) {
-    res.status(404).json({ error: 'OpenAI API key not found' });
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (apiKey) {
+    res.json({ apiKey });
   } else {
-    res.json({ key: openaiKey });
+    res.status(500).json({ error: 'OpenAI API Key not found' });
   }
 });
 
-// Primary webhook route
-app.post('/webhook1', middleware(primaryLineConfig), (req, res) => {
-  primaryWebhookHandler.handleWebhook(req, res).catch(error => {
-    console.error('Primary webhook error:', error);
-    res.status(500).json({ error: error.message });
-  });
+// Configure Line bot webhook endpoints
+app.post('/webhook1', async (req, res) => {
+  const signature = req.headers['x-line-signature'];
+  
+  // Verify signature
+  if (!signature) {
+    return res.status(400).json({ error: 'Missing signature' });
+  }
+
+  try {
+    // Convert request body to string if it's not already
+    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const events = req.body.events;
+
+    if (!Array.isArray(events)) {
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
+
+    const results = await Promise.all(
+      events.map(event => handleMessageEvent(event, 'primary', primaryClient))
+    );
+
+    res.json({ results });
+  } catch (error) {
+    console.error('Error handling primary webhook:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// Secondary webhook route
-app.post('/webhook2', middleware(secondaryLineConfig), (req, res) => {
-  secondaryWebhookHandler.handleWebhook(req, res).catch(error => {
-    console.error('Secondary webhook error:', error);
-    res.status(500).json({ error: error.message });
-  });
+app.post('/webhook2', async (req, res) => {
+  const signature = req.headers['x-line-signature'];
+  
+  // Verify signature
+  if (!signature) {
+    return res.status(400).json({ error: 'Missing signature' });
+  }
+
+  try {
+    // Convert request body to string if it's not already
+    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const events = req.body.events;
+
+    if (!Array.isArray(events)) {
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
+
+    const results = await Promise.all(
+      events.map(event => handleMessageEvent(event, 'secondary', secondaryClient))
+    );
+
+    res.json({ results });
+  } catch (error) {
+    console.error('Error handling secondary webhook:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// Health check routes
-app.get('/', (req, res) => {
-  console.log('Received request for /', req.headers);
-  res.status(200).send('Primary Line Bot is running');
-});
-
-app.get('/health', (req, res) => {
-  console.log('Received request for /health', req.headers);
-  res.setHeader('Content-Type', 'application/json');
-  res.json({
-    status: 'online',
-    message: 'Service is healthy',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Add CSP headers
-app.use((req, res, next) => {
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self' https: chrome-extension:; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension:; " +
-    "style-src 'self' 'unsafe-inline' https:; " +
-    "img-src 'self' data: https:; " +
-    "connect-src 'self' https: chrome-extension:; " +
-    "frame-src 'self' https: chrome-extension:;"
-  );
-  next();
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('應用程式錯誤:', err);
+  res.status(500).json({ error: '內部伺服器錯誤' });
 });
 
 // Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
-export { server };
