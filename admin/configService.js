@@ -21,6 +21,12 @@ class ConfigService {
 
     async loadConfig() {
         try {
+            // 如果已經有緩存的配置，直接返回
+            if (this.config && this.initialized) {
+                console.log('使用緩存的配置');
+                return this.config;
+            }
+
             this.config = await apiService.getConfig(this.currentBot);
             console.log('載入配置成功:', this.config);
             return this.config;
@@ -131,9 +137,11 @@ class ConfigService {
 
             // 保存到服務器
             await this.saveConfig(this.config);
+            this.showAlert('success', 'GPT 設置已保存');
             console.log(`${category} 類別的 GPT 設置已保存`);
         } catch (error) {
             console.error('保存 GPT 設置失敗:', error);
+            this.showAlert('danger', '保存 GPT 設置失敗: ' + error.message);
             throw error;
         }
     }
@@ -148,37 +156,64 @@ class ConfigService {
             if (container) {
                 const rulesList = container.querySelector('.rule-list');
                 if (rulesList) {
+                    // 清空現有規則
+                    rulesList.innerHTML = '';
+                    
+                    // 重新渲染規則列表
                     rulesList.innerHTML = categoryConfig.rules.map((rule, index) => `
                         <tr class="rule-item" data-index="${index}">
                             <td><input type="text" class="form-control rule-keywords" value="${rule.keywords || ''}"></td>
                             <td><textarea class="form-control rule-response" rows="2">${rule.response || ''}</textarea></td>
-                            <td><input type="text" class="form-control rule-ratio" value="${rule.ratio || ''}"></td>
-                            <td><input type="text" class="form-control rule-style" value="${rule.style || ''}"></td>
+                            <td>
+                                <select class="form-control rule-ratio">
+                                    <option value="0" ${rule.ratio === 0 ? 'selected' : ''}>0%</option>
+                                    <option value="50" ${rule.ratio === 50 ? 'selected' : ''}>50%</option>
+                                    <option value="100" ${rule.ratio === 100 ? 'selected' : ''}>100%</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-control rule-style">
+                                    <option value="professional" ${rule.style === 'professional' ? 'selected' : ''}>專業</option>
+                                    <option value="friendly" ${rule.style === 'friendly' ? 'selected' : ''}>親切</option>
+                                    <option value="cute" ${rule.style === 'cute' ? 'selected' : ''}>少女</option>
+                                    <option value="humorous" ${rule.style === 'humorous' ? 'selected' : ''}>幽默</option>
+                                </select>
+                            </td>
                             <td>
                                 <button class="btn btn-danger btn-sm delete-rule">刪除</button>
                             </td>
                         </tr>
                     `).join('');
 
-                    // 重新綁定刪除按鈕事件
-                    rulesList.querySelectorAll('.delete-rule').forEach(button => {
-                        button.addEventListener('click', () => {
-                            button.closest('.rule-item').remove();
-                        });
-                    });
-
                     // 綁定新增規則按鈕
                     const addButton = container.querySelector('.add-rule');
                     if (addButton) {
-                        addButton.addEventListener('click', () => {
+                        // 移除舊的事件監聽器
+                        const newAddButton = addButton.cloneNode(true);
+                        addButton.parentNode.replaceChild(newAddButton, addButton);
+                        
+                        newAddButton.addEventListener('click', () => {
                             const newRule = document.createElement('tr');
                             newRule.className = 'rule-item';
                             newRule.setAttribute('data-index', rulesList.children.length);
                             newRule.innerHTML = `
                                 <td><input type="text" class="form-control rule-keywords" value=""></td>
                                 <td><textarea class="form-control rule-response" rows="2"></textarea></td>
-                                <td><input type="text" class="form-control rule-ratio" value=""></td>
-                                <td><input type="text" class="form-control rule-style" value=""></td>
+                                <td>
+                                    <select class="form-control rule-ratio">
+                                        <option value="0">0%</option>
+                                        <option value="50" selected>50%</option>
+                                        <option value="100">100%</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="form-control rule-style">
+                                        <option value="professional">專業</option>
+                                        <option value="friendly" selected>親切</option>
+                                        <option value="cute">少女</option>
+                                        <option value="humorous">幽默</option>
+                                    </select>
+                                </td>
                                 <td>
                                     <button class="btn btn-danger btn-sm delete-rule">刪除</button>
                                 </td>
@@ -186,23 +221,51 @@ class ConfigService {
                             rulesList.appendChild(newRule);
 
                             // 綁定新規則的刪除按鈕
-                            newRule.querySelector('.delete-rule').addEventListener('click', () => {
-                                newRule.remove();
+                            newRule.querySelector('.delete-rule').addEventListener('click', async () => {
+                                const index = parseInt(newRule.getAttribute('data-index'));
+                                if (await this.deleteRule(category, index)) {
+                                    newRule.remove();
+                                }
                             });
                         });
                     }
 
+                    // 重新綁定所有刪除按鈕
+                    rulesList.querySelectorAll('.delete-rule').forEach(button => {
+                        // 移除舊的事件監聽器
+                        const newButton = button.cloneNode(true);
+                        button.parentNode.replaceChild(newButton, button);
+                        
+                        newButton.addEventListener('click', async () => {
+                            const row = newButton.closest('.rule-item');
+                            const index = parseInt(row.getAttribute('data-index'));
+                            if (await this.deleteRule(category, index)) {
+                                row.remove();
+                            }
+                        });
+                    });
+
                     // 綁定保存按鈕
                     const saveButton = container.querySelector('.save-rules');
                     if (saveButton) {
-                        saveButton.addEventListener('click', async () => {
-                            await this.saveAllRules(category);
+                        // 移除舊的事件監聽器
+                        const newSaveButton = saveButton.cloneNode(true);
+                        saveButton.parentNode.replaceChild(newSaveButton, saveButton);
+                        
+                        newSaveButton.addEventListener('click', async () => {
+                            try {
+                                await this.saveAllRules(category);
+                                this.showAlert('success', '規則已保存');
+                            } catch (error) {
+                                this.showAlert('danger', '保存規則失敗: ' + error.message);
+                            }
                         });
                     }
                 }
             }
         } catch (error) {
             console.error('載入回覆規則失敗:', error);
+            this.showAlert('danger', '載入回覆規則失敗: ' + error.message);
             throw error;
         }
     }
@@ -215,8 +278,8 @@ class ConfigService {
                 rules.push({
                     keywords: item.querySelector('.rule-keywords').value,
                     response: item.querySelector('.rule-response').value,
-                    ratio: item.querySelector('.rule-ratio').value,
-                    style: item.querySelector('.rule-style').value
+                    ratio: parseInt(item.querySelector('.rule-ratio').value) || 50,
+                    style: item.querySelector('.rule-style').value || 'friendly'
                 });
             });
 
@@ -289,6 +352,54 @@ class ConfigService {
 
     setCurrentBot(botId) {
         this.currentBot = botId;
+    }
+
+    showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // 移除舊的提示（如果有的話）
+        const oldAlerts = document.querySelectorAll('.alert');
+        oldAlerts.forEach(alert => alert.remove());
+        
+        // 將提示添加到 body
+        document.body.appendChild(alertDiv);
+        
+        // 5秒後自動關閉
+        setTimeout(() => {
+            if (document.body.contains(alertDiv)) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    async deleteRule(category, index) {
+        try {
+            // 從配置中刪除規則
+            if (!this.config.categories[category]) {
+                throw new Error('找不到指定的類別');
+            }
+            
+            this.config.categories[category].rules.splice(index, 1);
+            
+            // 保存到服務器
+            await this.saveConfig(this.config);
+            
+            // 顯示成功提示
+            this.showAlert('success', '規則已刪除');
+            
+            return true;
+        } catch (error) {
+            console.error('刪除規則失敗:', error);
+            this.showAlert('danger', '刪除規則失敗: ' + error.message);
+            return false;
+        }
     }
 }
 

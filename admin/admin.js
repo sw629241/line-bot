@@ -45,7 +45,11 @@ async function loadPanelData(panelId) {
         const panel = document.getElementById(panelId);
         if (!panel) return;
 
-        // 載入面板中的所有數據
+        // 每次切換標籤時都重置面板
+        panel.querySelectorAll('.rule-list').forEach(list => {
+            list.innerHTML = '';
+        });
+
         const gptSettingsContainer = panel.querySelector('.gpt-settings-container');
         const replyRulesContainer = panel.querySelector('.reply-rules-container');
 
