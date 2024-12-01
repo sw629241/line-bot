@@ -70,7 +70,7 @@ async function processMessageWithGPT(message, botConfig) {
         const systemPrompt = `你是一個專業的客服助手。你的任務是根據用戶的訊息，從不同類別中選擇最合適的回應。
 
 請遵循以下規則：
-1. 先判斷用戶訊息屬於哪個類別（products、prices、shipping、promotions、chat、noresponse）
+1. 先判斷用戶訊息屬於哪個類別（產品、價格、運送、促銷、聊天、敏感）
 2. 使用該類別的 systemPrompt 和 examples 作為參考
 3. 在該類別的 rules 中尋找最相關的規則
 4. 根據規則的 ratio 和 style 生成回應：
