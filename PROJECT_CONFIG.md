@@ -92,7 +92,7 @@
   - 產品價格
   - 運輸費用
   - 活動優惠
-  - 閒聊
+  - 一般對話
   - 敏感詞
 
 #### gpt-settings.html
@@ -170,7 +170,7 @@
     shipping: { systemPrompt: string, examples: string, rules: array },
     promotions: { systemPrompt: string, examples: string, rules: array },
     chat: { systemPrompt: string, examples: string, rules: array },
-    noresponse: { systemPrompt: string, examples: string, rules: array }
+    sensitive: { systemPrompt: string, examples: string, rules: array }
   }
 }
 ```
