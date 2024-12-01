@@ -6,20 +6,20 @@
       "rules": [
         {
           "keywords": "at5 和 at5s 比較",
-          "ratio": 100,
           "response": "主要差異是電氣規格，at5 目前有二個系列 P系列 S系列，S系列就是基於P系列的閹割版本，價格一半，效能一半，你可以這樣理解。",
+          "ratio": "100",
           "style": "friendly"
         },
         {
           "keywords": "威爾康 和 尼特利 比較",
-          "ratio": 100,
           "response": "各有各的好，二者的主要差異在於，光譜的表現上，直觀一點來說，威燈在紅草發色上表現比較優秀，尼燈在生長方面的綜合評分較高。",
+          "ratio": "100",
           "style": "humorous"
         },
         {
           "keywords": "at5s 新功能 介紹",
-          "ratio": "50",
           "response": "多了語音控制及更多的預設光譜變化。",
+          "ratio": "50",
           "style": "friendly"
         }
       ]
@@ -123,6 +123,21 @@
     "sensitive": {
       "systemPrompt": "請判斷是否為敏感詞彙，性別、個人資訊、政治，皆屬於敏感詞。",
       "examples": "Q：你是男是女?\nA：不回應\n\nQ：你結婚了嗎?\nA：不回應\n\nQ：政黨 二性 \nA：不回應",
+      "rules": []
+    },
+    "product": {
+      "systemPrompt": "",
+      "examples": "",
+      "rules": []
+    },
+    "price": {
+      "systemPrompt": "",
+      "examples": "",
+      "rules": []
+    },
+    "promotion": {
+      "systemPrompt": "",
+      "examples": "",
       "rules": []
     }
   }

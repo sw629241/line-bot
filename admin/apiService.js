@@ -22,17 +22,30 @@ class ApiService {
                 options.body = JSON.stringify(body);
             }
 
+            console.log(`發送請求: ${method} ${url}`, body ? '請求內容:' : '', body || '');
             const response = await fetch(url, options);
-            const responseData = await response.json();
+            
+            const contentType = response.headers.get('content-type');
+            let responseData;
+            
+            if (contentType && contentType.includes('application/json')) {
+                responseData = await response.json();
+            } else {
+                const text = await response.text();
+                console.error('非預期的響應類型:', contentType, '響應內容:', text);
+                throw new Error('伺服器返回了非預期的響應類型');
+            }
 
             if (!response.ok) {
+                console.error('請求失敗:', responseData);
                 throw new Error(responseData.error || `HTTP error! status: ${response.status}`);
             }
 
+            console.log(`請求成功: ${method} ${url}`, responseData);
             return responseData;
         } catch (error) {
             console.error('請求失敗:', { url, method, error: error.message });
-            throw error;
+            throw new Error('內部伺服器錯誤');
         }
     }
 
@@ -45,7 +58,12 @@ class ApiService {
     }
 
     async saveConfig(config) {
-        return this.sendRequest(`/admin/api/save-config/${this.currentBot}`, 'POST', config);
+        if (!config || !config.categories) {
+            throw new Error('Invalid configuration format');
+        }
+        return this.sendRequest(`/admin/api/save-config/${this.currentBot}`, 'POST', {
+            categories: config.categories
+        });
     }
 
     async testGPTResponse(input, config) {

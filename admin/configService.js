@@ -28,10 +28,10 @@ class ConfigService {
             console.error('載入配置失敗:', error);
             this.config = {
                 categories: {
-                    products: { systemPrompt: '', examples: '', rules: [] },
-                    prices: { systemPrompt: '', examples: '', rules: [] },
+                    product: { systemPrompt: '', examples: '', rules: [] },
+                    price: { systemPrompt: '', examples: '', rules: [] },
                     shipping: { systemPrompt: '', examples: '', rules: [] },
-                    promotions: { systemPrompt: '', examples: '', rules: [] },
+                    promotion: { systemPrompt: '', examples: '', rules: [] },
                     chat: { systemPrompt: '', examples: '', rules: [] },
                     sensitive: { systemPrompt: '', examples: '', rules: [] }
                 }
@@ -48,14 +48,15 @@ class ConfigService {
             }
 
             // 檢查必要的類別是否存在
-            const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
+            const requiredCategories = ['product', 'price', 'shipping', 'promotion', 'chat', 'sensitive'];
             for (const category of requiredCategories) {
                 if (!config.categories[category]) {
                     config.categories[category] = { systemPrompt: '', examples: '', rules: [] };
                 }
             }
 
-            await apiService.saveConfig(this.currentBot, config);
+            // 保存配置
+            await apiService.saveConfig(config);
             this.config = config;
             console.log('保存配置成功');
         } catch (error) {
@@ -99,21 +100,38 @@ class ConfigService {
     async saveGPTSettings(category) {
         try {
             const container = document.getElementById(`${category}GptSettings`);
-            if (!container) return;
+            if (!container) {
+                throw new Error(`找不到類別 ${category} 的設置容器`);
+            }
 
-            const systemPrompt = container.querySelector('.gpt-prompt').value;
-            const examples = container.querySelector('.gpt-examples').value;
+            const promptElement = container.querySelector('.gpt-prompt');
+            const examplesElement = container.querySelector('.gpt-examples');
+            
+            if (!promptElement || !examplesElement) {
+                throw new Error(`找不到必要的輸入欄位`);
+            }
 
-            // 更新配置
+            const systemPrompt = promptElement.value;
+            const examples = examplesElement.value;
+
+            // 確保配置物件結構正確
+            if (!this.config) {
+                this.config = { categories: {} };
+            }
+            if (!this.config.categories) {
+                this.config.categories = {};
+            }
             if (!this.config.categories[category]) {
                 this.config.categories[category] = {};
             }
+
+            // 更新配置
             this.config.categories[category].systemPrompt = systemPrompt;
             this.config.categories[category].examples = examples;
 
             // 保存到服務器
             await this.saveConfig(this.config);
-            console.log('GPT 設置已保存');
+            console.log(`${category} 類別的 GPT 設置已保存`);
         } catch (error) {
             console.error('保存 GPT 設置失敗:', error);
             throw error;

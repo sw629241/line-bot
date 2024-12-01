@@ -90,18 +90,28 @@ app.post('/admin/api/save-config/:botId', express.json(), async (req, res) => {
 
     // 驗證配置格式
     if (!req.body || !req.body.categories) {
+      console.error('Invalid configuration format:', req.body);
       return res.status(400).json({ error: 'Invalid configuration format' });
     }
 
+    // 檢查必要的類別
+    const requiredCategories = ['product', 'price', 'shipping', 'promotion', 'chat', 'sensitive'];
+    for (const category of requiredCategories) {
+      if (!req.body.categories[category]) {
+        console.error(`Missing required category: ${category}`);
+        return res.status(400).json({ error: `Missing required category: ${category}` });
+      }
+    }
+
     // 保存配置
-    await fs.writeFile(configPath, JSON.stringify(req.body, null, 2), 'utf8');
+    const configString = JSON.stringify(req.body, null, 2);
+    await fs.writeFile(configPath, configString, 'utf8');
+    
+    console.log(`Configuration saved successfully for bot ${botId}`);
     res.json({ success: true });
   } catch (error) {
     console.error('Error saving config:', error);
-    res.status(500).json({ 
-      error: 'Failed to save config file',
-      details: error.message 
-    });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
