@@ -341,3 +341,53 @@ h5 {
         margin: 0 -1rem;
     }
 }
+
+/* 測試區域樣式 */
+.test-area-container {
+    margin-bottom: 2rem;
+}
+
+.test-result-container {
+    margin-top: 1.5rem;
+}
+
+.test-result-wrapper {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.test-result-content {
+    font-size: 0.95rem;
+    color: #e9ecef;
+}
+
+.result-item {
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+}
+
+.result-label {
+    font-weight: 600;
+    color: #adb5bd;
+    margin-right: 0.5rem;
+}
+
+.result-value {
+    color: #e9ecef;
+}
+
+.content-block {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.result-content {
+    margin-top: 0.5rem;
+    color: #e9ecef;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.alert {
+    margin-bottom: 0;
+}

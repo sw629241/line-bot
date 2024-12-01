@@ -38,6 +38,70 @@ function bindEventListeners() {
             await loadPanelData(targetId);
         });
     });
+
+    // 監聽所有測試按鈕
+    document.querySelectorAll('.test-button').forEach(button => {
+        button.addEventListener('click', async (event) => {
+            const panel = event.target.closest('.card-body');
+            const input = panel.querySelector('.test-input');
+            const result = panel.querySelector('.test-result');
+            
+            if (!input || !result) return;
+            
+            try {
+                result.textContent = '處理中...';
+                const message = input.value.trim();
+                if (!message) {
+                    result.textContent = '請輸入測試訊息';
+                    return;
+                }
+
+                // 發送測試請求
+                const response = await messageService.testMessage(message);
+
+                // 更新結果顯示
+                result.innerHTML = `
+                    <div class="test-result-content">
+                        <div class="result-item">
+                            <span class="result-label">類別：</span>
+                            <span class="result-value">${response.category || '未分類'}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">意圖：</span>
+                            <span class="result-value">${response.intent || '未知'}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">信心度：</span>
+                            <span class="result-value">${response.confidence ? (response.confidence * 100).toFixed(1) : 0}%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">關鍵詞：</span>
+                            <span class="result-value">${(response.matchedKeywords || []).join(', ') || '無'}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">動態比例：</span>
+                            <span class="result-value">${response.dynamicRatio || 0}%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">語言風格：</span>
+                            <span class="result-value">${response.style || 'standard'}</span>
+                        </div>
+                        <div class="result-item content-block">
+                            <span class="result-label">生成內容：</span>
+                            <div class="result-content">${response.generatedContent ? response.generatedContent.replace(/\n/g, '<br>') : '無生成內容'}</div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('測試失敗:', error);
+                result.innerHTML = `
+                    <div class="alert alert-danger">
+                        測試失敗: ${error.message}
+                    </div>
+                `;
+            }
+        });
+    });
 }
 
 async function loadPanelData(panelId) {
@@ -95,7 +159,8 @@ async function initializeComponent(container, componentType) {
                 await configService.loadReplyRules(container.id);
                 break;
             case 'test-area-container':
-                // 初始化測試區域
+                // 使用 ui.js 中的測試區域初始化功能
+                await ui.initTestArea(container);
                 break;
             default:
                 console.warn(`未知的組件類型: ${componentType}`);
