@@ -1,14 +1,23 @@
 # LINE Bot 專案
 
 ## 概述
-基於 Node.js 的 LINE Bot 應用程式，支援雙 webhook，使用 Docker 運行並通過 Nginx 代理管理器進行 SSL 終止。
+基於 Node.js 的 LINE Bot 應用程式，支援雙 webhook（sxi-bot 和 fas-bot），使用 Docker 運行並通過 Nginx 代理管理器進行 SSL 終止。新增了對話管理功能，包括對話記錄查詢、對話內容分析等。
 
 ## 功能特點
 - 支援雙 LINE Bot 與獨立 webhook
+  - `/webhook1`: sxi-bot
+  - `/webhook2`: fas-bot
 - 通過 Let's Encrypt 實現 SSL/TLS 加密
 - Docker 容器化部署
 - Nginx 反向代理
 - 健康檢查監控
+- 管理介面
+  - 規則管理與即時預覽
+  - 配置自動保存
+  - 友善的使用者提示
+- 對話管理功能
+  - 對話記錄查詢
+  - 對話內容分析
 
 ## 前置需求
 - Docker 和 Docker Compose

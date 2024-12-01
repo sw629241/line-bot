@@ -40,11 +40,23 @@ async function loadCurrentBot() {
 // 保存配置
 async function saveConfig(config) {
     try {
+        console.log('正在保存配置...');
         await window.api.saveConfig(window.admin.currentBot, config);
+        console.log('配置保存成功');
         window.ui.showAlert('success', '保存成功');
+        
+        // 等待一段時間後重新載入配置
+        setTimeout(async () => {
+            try {
+                await loadCurrentBot();
+            } catch (error) {
+                console.error('重新載入配置失敗:', error);
+            }
+        }, 1000);
     } catch (error) {
         console.error('保存配置失敗:', error);
         window.ui.showAlert('error', '保存失敗: ' + error.message);
+        throw error;
     }
 }
 

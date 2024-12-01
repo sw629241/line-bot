@@ -1,5 +1,9 @@
 // 顯示提示訊息
 function showAlert(type, message) {
+    // 移除所有現有的提示訊息
+    const existingAlerts = document.querySelectorAll('.alert');
+    existingAlerts.forEach(alert => alert.remove());
+
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
     alertDiv.style.zIndex = '9999';

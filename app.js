@@ -99,14 +99,35 @@ app.post('/admin/api/save-config/:botId', async (req, res) => {
     const configDir = path.join(process.cwd(), 'admin', botId);
     const configPath = path.join(configDir, 'config.json');
     
+    console.log('Saving config:', {
+      botId,
+      configDir,
+      configPath,
+      bodySize: JSON.stringify(req.body).length
+    });
+
     // 確保目錄存在
     await fs.mkdir(configDir, { recursive: true });
     
-    // 儲存配置
-    await fs.writeFile(configPath, JSON.stringify(req.body, null, 2));
+    // 先將配置寫入臨時文件
+    const tempPath = `${configPath}.tmp`;
+    await fs.writeFile(tempPath, JSON.stringify(req.body, null, 2));
+    
+    // 確認臨時文件寫入成功
+    const tempContent = await fs.readFile(tempPath, 'utf8');
+    JSON.parse(tempContent); // 驗證 JSON 格式
+    
+    // 如果驗證成功，將臨時文件重命名為正式文件
+    await fs.rename(tempPath, configPath);
+    
+    console.log('Config saved successfully');
     res.json({ success: true });
   } catch (error) {
-    console.error('Error saving config:', error);
+    console.error('Error saving config:', {
+      error: error.message,
+      stack: error.stack,
+      botId: req.params.botId
+    });
     res.status(500).json({ error: error.message });
   }
 });

@@ -26,7 +26,7 @@ async function logEvent(botType, event) {
 async function loadBotConfig(botType) {
     try {
         // 修改配置文件路徑
-        const configPath = path.join(process.cwd(), 'admin', `${botType === 'primary' ? 'fas' : 'sxi'}-bot`, 'config.json');
+        const configPath = path.join(process.cwd(), 'admin', `${botType === 'primary' ? 'sxi' : 'fas'}-bot`, 'config.json');
         console.log('Loading config from:', configPath);
         const configData = await fs.readFile(configPath, 'utf8');
         return JSON.parse(configData);
