@@ -54,7 +54,7 @@
                     <div class="test-area-container"></div>
                 </div>
 
-                <div class="tab-pane fade" id="noresponse" role="tabpanel">
+                <div class="tab-pane fade" id="sensitive" role="tabpanel">
                     <div class="gpt-settings-container"></div>
                     <div class="reply-rules-container"></div>
                     <div class="test-area-container"></div>
@@ -102,7 +102,7 @@
                 await loadComponent('categoryTabsContainer', 'category-tabs.html');
 
                 // 加載每個類別的組件
-                const categories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'noresponse'];
+                const categories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
                 for (const category of categories) {
                     const containers = document.querySelectorAll(`#${category} .gpt-settings-container, #${category} .reply-rules-container, #${category} .test-area-container`);
                     containers[0].innerHTML = await (await fetch('/admin/components/gpt-settings.html')).text();

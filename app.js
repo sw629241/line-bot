@@ -79,7 +79,7 @@ app.get('/admin/api/get-config/:botId', async (req, res) => {
             shipping: { systemPrompt: '', examples: '', rules: [] },
             promotions: { systemPrompt: '', examples: '', rules: [] },
             chat: { systemPrompt: '', examples: '', rules: [] },
-            noresponse: { systemPrompt: '', examples: '', rules: [] }
+            sensitive: { systemPrompt: '', examples: '', rules: [] }
           }
         };
         res.json(defaultConfig);
