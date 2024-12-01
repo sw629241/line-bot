@@ -27,7 +27,7 @@ const adminExtension = {
         shipping: { systemPrompt: '', examples: '', rules: [] },
         promotions: { systemPrompt: '', examples: '', rules: [] },
         chat: { systemPrompt: '', examples: '', rules: [] },
-        noresponse: { systemPrompt: '', examples: '', rules: [] }
+        sensitive: { systemPrompt: '', examples: '', rules: [] }
     },
     
     updateRule(category, index, field, value) {

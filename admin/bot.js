@@ -14,7 +14,7 @@ async function loadConfig() {
                 shipping: { systemPrompt: '', examples: '', rules: [] },
                 promotions: { systemPrompt: '', examples: '', rules: [] },
                 chat: { systemPrompt: '', examples: '', rules: [] },
-                noresponse: { systemPrompt: '', examples: '', rules: [] }
+                sensitive: { systemPrompt: '', examples: '', rules: [] }
             }
         };
     }
