@@ -120,7 +120,7 @@
         }
       ]
     },
-    "noresponse": {
+    "sensitive": {
       "systemPrompt": "請判斷是否為敏感詞彙，定義如範例中所述。",
       "examples": "Q:你是男是女?\nA:不回應\n\nQ:你結婚了嗎?\nA:不回應\n\nQ:政黨 二性 \nA:不回應",
       "rules": [

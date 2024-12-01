@@ -85,8 +85,8 @@
       ]
     },
     "chat": {
-      "systemPrompt": "不確定的問題，一律回答:\"已通知小編進行回覆，請稍等。AA\"",
-      "examples": " ",
+      "systemPrompt": "非產品資訊、產品價格、運輸費用、活動優惠的訊息，皆屬於一般對話。\n不確定的問題，一律回答:\"已通知小編進行回覆，請稍等。\"",
+      "examples": "Q：今天天氣如何?\nA：今天是晴天，天氣很好。\nQ：你吃飽了嗎?\nA：忙的沒時間吃飯呢。",
       "rules": [
         {
           "keywords": "燈具設定：尼特利(尼燈)",
@@ -120,18 +120,10 @@
         }
       ]
     },
-    "noresponse": {
-      "systemPrompt": "請判斷是否為敏感詞彙，定義如範例中所述。",
-      "examples": "Q:你是男是女?\nA:不回應\n\nQ:你結婚了嗎?\nA:不回應\n\nQ:政黨 二性 \nA:不回應",
-      "rules": [
-        {
-          "keywords": "敏感詞",
-          "response": "不回應",
-          "ratio": 100,
-          "style": "default",
-          "enabled": true
-        }
-      ]
+    "sensitive": {
+      "systemPrompt": "請判斷是否為敏感詞彙，性別、個人資訊、政治，皆屬於敏感詞。",
+      "examples": "Q：你是男是女?\nA：不回應\n\nQ：你結婚了嗎?\nA：不回應\n\nQ：政黨 二性 \nA：不回應",
+      "rules": []
     }
   }
 }
