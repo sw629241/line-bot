@@ -95,6 +95,63 @@ class MessageService {
         }
     }
 
+    // 處理測試訊息
+    async testMessage(message) {
+        try {
+            // 獲取當前配置
+            const config = await configService.getCurrentConfig();
+            if (!config || !config.categories) {
+                throw new Error('無法獲取配置或配置無效');
+            }
+
+            // 準備發送給GPT的數據
+            const gptData = {
+                message: message,
+                categories: config.categories
+            };
+
+            console.log('Sending test message request:', {
+                message: message,
+                categoriesCount: Object.keys(config.categories).length
+            });
+
+            // 發送到後端API進行處理
+            const response = await fetch('/admin/api/test-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gptData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API response error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorText
+                });
+                throw new Error(`API請求失敗: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log('API response success:', result);
+
+            return {
+                category: result.category,           // 判斷的類別
+                intent: result.intent,               // 語義意圖
+                confidence: result.confidence,       // 判斷信心度
+                matchedKeywords: result.keywords,    // 匹配的關鍵詞
+                generatedContent: result.content,    // 生成的內容
+                dynamicRatio: result.ratio || 0,     // 動態比例
+                style: result.style || 'friendly'    // 語言風格
+            };
+        } catch (error) {
+            console.error('測試訊息處理失敗:', error);
+            throw error;
+        }
+    }
+
     // 初始化 OpenAI
     async initializeOpenAI() {
         try {

@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Client } from '@line/bot-sdk';
 import { handleMessageEvent, processMessageWithGPT } from './admin/server.js';
+import { Configuration, OpenAIApi } from 'openai';
 
 // Load environment variables
 dotenv.config();
@@ -35,17 +36,6 @@ const primaryClient = new Client(primaryLineConfig);
 const secondaryClient = new Client(secondaryLineConfig);
 
 // Configure static file serving
-app.use(express.static('.', {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript');
-    } else if (path.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css');
-    }
-  }
-}));
-
-// Serve admin panel
 app.use('/admin', express.static('admin', {
   setHeaders: (res, path) => {
     if (path.endsWith('.js')) {
@@ -66,8 +56,28 @@ app.get('/admin/api/get-config/:botId', async (req, res) => {
   try {
     const botId = req.params.botId;
     const configPath = path.join(process.cwd(), 'admin', botId, 'config.json');
-    const configData = await fs.readFile(configPath, 'utf8');
-    res.json(JSON.parse(configData));
+    
+    try {
+      const configData = await fs.readFile(configPath, 'utf8');
+      res.json(JSON.parse(configData));
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // 如果文件不存在，返回默認配置
+        const defaultConfig = {
+          categories: {
+            product: {},
+            price: {},
+            shipping: {},
+            promotion: {},
+            chat: {},
+            sensitive: {}
+          }
+        };
+        res.json(defaultConfig);
+      } else {
+        throw error;
+      }
+    }
   } catch (error) {
     console.error('Error reading config:', error);
     res.status(500).json({ error: 'Failed to read config file' });
@@ -112,6 +122,59 @@ app.post('/admin/api/save-config/:botId', express.json(), async (req, res) => {
   } catch (error) {
     console.error('Error saving config:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Test message endpoint
+app.post('/admin/api/test-message', express.json(), async (req, res) => {
+  try {
+    const { message, categories } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // 使用傳入的配置進行測試
+    const config = { categories };
+    const generatedContent = await processMessageWithGPT(message, config);
+
+    // 分析回應
+    const analysis = {
+      category: '一般查詢',           // 預設類別
+      intent: '詢問',                // 預設意圖
+      confidence: 0.8,               // 預設信心度
+      matchedKeywords: [],           // 匹配的關鍵詞
+      generatedContent: generatedContent,  // GPT 生成的回應
+      dynamicRatio: 50,              // 預設動態比例
+      style: 'friendly'              // 預設語言風格
+    };
+
+    // 根據配置分析類別和關鍵詞
+    if (categories) {
+      for (const [categoryName, category] of Object.entries(categories)) {
+        if (category.keywords) {
+          const keywords = Array.isArray(category.keywords) 
+            ? category.keywords 
+            : [category.keywords];
+          
+          const matchedKeywords = keywords.filter(keyword => 
+            message.toLowerCase().includes(keyword.toLowerCase())
+          );
+
+          if (matchedKeywords.length > 0) {
+            analysis.category = categoryName;
+            analysis.matchedKeywords = matchedKeywords;
+            analysis.confidence = 0.9;
+            break;
+          }
+        }
+      }
+    }
+
+    res.json(analysis);
+  } catch (error) {
+    console.error('Error processing test message:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -203,7 +266,15 @@ app.post('/webhook2', async (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('應用程式錯誤:', err);
-  res.status(500).json({ error: '內部伺服器錯誤' });
+  
+  // 根據錯誤類型返回適當的狀態碼
+  if (err.type === 'service_unavailable') {
+    res.status(503).json({ error: '服務暫時不可用' });
+  } else if (err.type === 'configuration_error') {
+    res.status(500).json({ error: '配置錯誤' });
+  } else {
+    res.status(500).json({ error: '內部伺服器錯誤' });
+  }
 });
 
 // Start server

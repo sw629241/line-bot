@@ -1,6 +1,7 @@
 import { Configuration, OpenAIApi } from 'openai';
 import fs from 'fs/promises';
 import path from 'path';
+import { configService } from './configService.js';
 
 // Initialize OpenAI
 const configuration = new Configuration({
@@ -23,33 +24,33 @@ export async function loadBotConfig(botType) {
 // Process message with GPT
 export async function processMessageWithGPT(message, botType) {
     try {
-        const config = await loadBotConfig(botType);
-        if (!config) {
-            return '抱歉，目前無法處理您的請求。';
+        const config = await configService.getConfig(botType);
+        if (!config || !config.categories) {
+            return '抱歉，配置無效。';
+        }
+
+        // 使用傳入的配置對象
+        const categories = config.categories;
+        let categoriesInfo = '';
+        
+        // 處理每個類別的信息
+        for (const [categoryName, category] of Object.entries(categories)) {
+            categoriesInfo += `類別：${categoryName}\n`;
+            if (category.description) {
+                categoriesInfo += `描述：${category.description}\n`;
+            }
+            if (category.examples) {
+                categoriesInfo += `範例：${Array.isArray(category.examples) ? category.examples.join(', ') : category.examples}\n`;
+            }
+            if (category.rules) {
+                categoriesInfo += `規則：${typeof category.rules === 'object' ? JSON.stringify(category.rules, null, 2) : category.rules}\n`;
+            }
+            categoriesInfo += '\n';
         }
 
         const systemPrompt = config.systemPrompt || '你是一個有用的助手。';
-        let categoriesInfo = '';
-        
-        if (config.categories) {
-            for (const category of config.categories) {
-                categoriesInfo += `類別：${category.name}\n`;
-                categoriesInfo += `描述：${category.description}\n`;
-                if (category.examples) {
-                    categoriesInfo += `範例：${category.examples.join(', ')}\n`;
-                }
-                if (category.rules) {
-                    categoriesInfo += `規則：${JSON.stringify(category.rules, null, 2)}\n`;
-                }
-                categoriesInfo += '\n';
-            }
-        } else {
-            categoriesInfo += `描述：${config.description || '無'}\n`;
-            categoriesInfo += `範例：${config.examples || '無'}\n`;
-            categoriesInfo += `規則：${JSON.stringify(config.rules, null, 2)}\n`;
-        }
-
         const userPrompt = `類別資訊：${categoriesInfo}\n\n用戶訊息：${message}`;
+
         const response = await openai.createChatCompletion({
             model: "gpt-3.5-turbo",
             messages: [
@@ -63,7 +64,7 @@ export async function processMessageWithGPT(message, botType) {
         return response.data.choices[0].message.content;
     } catch (error) {
         console.error('Error processing message with GPT:', error);
-        return '抱歉，處理您的請求時發生錯誤。';
+        throw new Error('Failed to process with GPT: ' + error.message);
     }
 }
 

@@ -352,6 +352,14 @@ class ConfigService {
 
     setCurrentBot(botId) {
         this.currentBot = botId;
+        this.config = null;  // 清除緩存，強制重新載入
+    }
+
+    async getCurrentConfig() {
+        if (!this.config) {
+            await this.loadConfig();
+        }
+        return this.config;
     }
 
     showAlert(type, message) {

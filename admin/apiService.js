@@ -33,7 +33,7 @@ class ApiService {
             } else {
                 const text = await response.text();
                 console.error('非預期的響應類型:', contentType, '響應內容:', text);
-                throw new Error('伺服器返回了非預期的響應類型');
+                throw new Error(`伺服器返回了非預期的響應類型: ${contentType}`);
             }
 
             if (!response.ok) {
@@ -45,7 +45,10 @@ class ApiService {
             return responseData;
         } catch (error) {
             console.error('請求失敗:', { url, method, error: error.message });
-            throw new Error('內部伺服器錯誤');
+            if (error.message.includes('非預期的響應類型') || error.message.includes('HTTP error')) {
+                throw error;
+            }
+            throw new Error(`請求失敗: ${error.message}`);
         }
     }
 
@@ -54,7 +57,16 @@ class ApiService {
     }
 
     async getConfig() {
-        return this.sendRequest(`/admin/api/get-config/${this.currentBot}`);
+        try {
+            const config = await this.sendRequest(`/admin/api/get-config/${this.currentBot}`);
+            if (!config || !config.categories) {
+                throw new Error('無效的配置格式');
+            }
+            return config;
+        } catch (error) {
+            console.error('獲取配置失敗:', error);
+            throw error;
+        }
     }
 
     async saveConfig(config) {
