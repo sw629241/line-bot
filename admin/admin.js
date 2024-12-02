@@ -29,6 +29,33 @@ export async function initAdmin() {
 }
 
 function bindEventListeners() {
+    // 監聽 Bot 選擇器變更事件
+    const botSelector = document.getElementById('botSelector');
+    if (botSelector) {
+        botSelector.addEventListener('change', async (event) => {
+            const selectedBot = event.target.value;
+            console.log(`切換到 Bot: ${selectedBot}`);
+            
+            // 更新 configService 的當前 Bot
+            configService.setCurrentBot(selectedBot);
+            
+            // 強制重新初始化配置服務
+            await configService.init();
+            
+            // 重新載入所有面板的數據
+            const panels = document.querySelectorAll('.tab-pane');
+            for (const panel of panels) {
+                await loadPanelData(panel.id);
+            }
+            
+            // 更新當前活動面板的 UI
+            const activePanel = document.querySelector('.tab-pane.active');
+            if (activePanel) {
+                await updatePanelUI(activePanel.id);
+            }
+        });
+    }
+
     // 監聽標籤切換事件
     const tabList = document.querySelectorAll('[data-bs-toggle="tab"]');
     tabList.forEach(tab => {
@@ -168,4 +195,8 @@ async function initializeComponent(container, componentType) {
     } catch (error) {
         console.error(`初始化組件 ${container.id} 失敗:`, error);
     }
+}
+
+async function updatePanelUI(panelId) {
+    // 將這個函數實現為空函數，因為它沒有被定義
 }

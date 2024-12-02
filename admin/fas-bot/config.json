@@ -1,25 +1,25 @@
 {
   "categories": {
     "products": {
-      "systemPrompt": "不確定的問題，一律回答:\"已通知小編進行回覆，請稍等。\"",
+      "systemPrompt": "不確定的問題，一律回答:\"已通知小編進行回覆，請稍等。B\"",
       "examples": "Q: at5 跟 at5s 的差異\nA: 主要差異是電氣規格，at5 目前有二個系列 P系列 S系列，S系列就是基於P系列的閹割版本，價格一半，效能一半，你可以這樣理解。\n\nQ:at5s 適合用在什麼魚缸。\nA:缸子水深不超過45cm ，的缸子都合適。\n\nQ: at5s新版本有什麼功能?\nA: 多了語音控制及更多的預設光譜變化。\n\nQ:威爾康跟尼特利哪個好?\nA:各有各的好，二者的主要差異在於，光譜的表現上，直觀一點來說，威燈在紅草發色上表現比較優秀，尼燈在生長方面的綜合評分較高。",
       "rules": [
         {
           "keywords": "at5 和 at5s 比較",
-          "ratio": "100",
           "response": "主要差異是電氣規格，at5 目前有二個系列 P系列 S系列，S系列就是基於P系列的閹割版本，價格一半，效能一半，你可以這樣理解。",
-          "style": "親切"
+          "ratio": 50,
+          "style": "專業"
         },
         {
           "keywords": "威爾康 和 尼特利 比較",
-          "ratio": "100",
           "response": "各有各的好，二者的主要差異在於，光譜的表現上，直觀一點來說，威燈在紅草發色上表現比較優秀，尼燈在生長方面的綜合評分較高。",
+          "ratio": 50,
           "style": "專業"
         },
         {
           "keywords": "at5s 新功能 介紹",
-          "ratio": "100",
           "response": "多了語音控制及更多的預設光譜變化。",
+          "ratio": 50,
           "style": "親切"
         }
       ]
@@ -85,8 +85,8 @@
       ]
     },
     "chat": {
-      "systemPrompt": "不確定的問題，一律回答:\"已通知小編進行回覆，請稍等。\"",
-      "examples": " ",
+      "systemPrompt": "非產品資訊、產品價格、運輸費用、活動優惠的訊息，皆屬於一般對話。\n不確定的問題，一律回答:\"已通知小編進行回覆，請稍等。\"",
+      "examples": "Q：今天天氣如何?\nA：今天是晴天，天氣很好。\nQ：你吃飽了嗎?\nA：忙的沒時間吃飯呢。",
       "rules": [
         {
           "keywords": "燈具設定：尼特利(尼燈)",
@@ -114,24 +114,31 @@
         },
         {
           "keywords": "故障維修",
-          "ratio": "100",
+          "ratio": "0",
           "response": "已通知技術老編進行回覆，請稍等。",
           "style": "專業"
         }
       ]
     },
     "sensitive": {
-      "systemPrompt": "請判斷是否為敏感詞彙，定義如範例中所述。",
-      "examples": "Q:你是男是女?\nA:不回應\n\nQ:你結婚了嗎?\nA:不回應\n\nQ:政黨 二性 \nA:不回應",
-      "rules": [
-        {
-          "keywords": "1111",
-          "response": "22222",
-          "ratio": "100",
-          "style": "親切",
-          "enabled": true
-        }
-      ]
+      "systemPrompt": "請判斷是否為敏感詞彙，性別、個人資訊、政治，皆屬於敏感詞。",
+      "examples": "Q：你是男是女?\nA：不回應\n\nQ：你結婚了嗎?\nA：不回應\n\nQ：政黨 二性 \nA：不回應",
+      "rules": []
+    },
+    "product": {
+      "systemPrompt": "",
+      "examples": "",
+      "rules": []
+    },
+    "price": {
+      "systemPrompt": "",
+      "examples": "",
+      "rules": []
+    },
+    "promotion": {
+      "systemPrompt": "",
+      "examples": "",
+      "rules": []
     }
   }
 }

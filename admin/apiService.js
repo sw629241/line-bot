@@ -9,45 +9,30 @@ class ApiService {
         return Promise.resolve();
     }
 
-    async sendRequest(url, method = 'GET', body = null) {
+    async sendRequest(method, url, data = null) {
+        console.log(`發送請求: ${method} ${url}`, data ? `請求內容: ${JSON.stringify(data)}` : '');
         try {
             const options = {
-                method,
+                method: method,
                 headers: {
                     'Content-Type': 'application/json'
                 }
             };
 
-            if (body) {
-                options.body = JSON.stringify(body);
+            if (data) {
+                options.body = JSON.stringify(data);
             }
 
-            console.log(`發送請求: ${method} ${url}`, body ? '請求內容:' : '', body || '');
             const response = await fetch(url, options);
-            
-            const contentType = response.headers.get('content-type');
-            let responseData;
-            
-            if (contentType && contentType.includes('application/json')) {
-                responseData = await response.json();
-            } else {
-                const text = await response.text();
-                console.error('非預期的響應類型:', contentType, '響應內容:', text);
-                throw new Error(`伺服器返回了非預期的響應類型: ${contentType}`);
-            }
-
             if (!response.ok) {
-                console.error('請求失敗:', responseData);
-                throw new Error(responseData.error || `HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            console.log(`請求成功: ${method} ${url}`, responseData);
-            return responseData;
+            const result = await response.json();
+            console.log(`請求成功: ${method} ${url}`, result);
+            return result;
         } catch (error) {
-            console.error('請求失敗:', { url, method, error: error.message });
-            if (error.message.includes('非預期的響應類型') || error.message.includes('HTTP error')) {
-                throw error;
-            }
+            console.error(`請求失敗:`, { method, url, error: error.message });
             throw new Error(`請求失敗: ${error.message}`);
         }
     }
@@ -56,41 +41,37 @@ class ApiService {
         this.currentBot = botId;
     }
 
-    async getConfig() {
+    async getConfig(botId) {
+        console.log(`正在從 API 加載 ${botId} 的配置...`);
         try {
-            // 使用完整的 API 路徑
-            const response = await fetch(`/admin/${this.currentBot}/config.json`);
+            // 使用正確的路徑格式
+            const response = await fetch(`/admin/${botId}/config.json`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const config = await response.json();
-            
-            // 驗證配置格式
-            if (!config || !config.categories) {
-                throw new Error('無效的配置格式: 缺少 categories 屬性');
-            }
-            
-            // 驗證必要的類別
-            const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
-            const missingCategories = requiredCategories.filter(cat => !config.categories[cat]);
-            if (missingCategories.length > 0) {
-                throw new Error(`無效的配置格式: 缺少必要類別 ${missingCategories.join(', ')}`);
-            }
-            
+            console.log(`成功加載 ${botId} 的配置:`, config);
             return config;
         } catch (error) {
-            console.error('獲取配置失敗:', error);
+            console.error(`加載 ${botId} 配置失敗:`, error);
             throw error;
         }
     }
 
-    async saveConfig(config) {
-        if (!config || !config.categories) {
-            throw new Error('Invalid configuration format');
+    async saveConfig(botId, config) {
+        console.log(`保存 ${botId} 的配置...`);
+        try {
+            const response = await this.sendRequest('POST', `/admin/api/save-config/${botId}`, config);
+            if (response.success) {
+                console.log(`成功保存 ${botId} 的配置`);
+                return response;
+            } else {
+                throw new Error(`保存配置失敗: ${response.error || '未知錯誤'}`);
+            }
+        } catch (error) {
+            console.error('保存配置時發生錯誤:', error);
+            throw error;
         }
-        return this.sendRequest(`/admin/api/save-config/${this.currentBot}`, 'POST', {
-            categories: config.categories
-        });
     }
 
     async testGPTResponse(input, config) {

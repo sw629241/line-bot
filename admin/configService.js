@@ -5,97 +5,48 @@ class ConfigService {
         this.config = null;
         this.initialized = false;
         this.currentBot = 'sxi-bot';
+        this.baseUrl = '/admin';
     }
 
     async init() {
         console.log('初始化配置服務...');
         try {
-            await this.loadConfig();
+            // 清除緩存的配置
+            this.config = null;
+            
+            // 從 API 加載新配置
+            const config = await apiService.getConfig(this.currentBot);
+            if (!config || !config.categories) {
+                throw new Error('Invalid configuration format');
+            }
+            
+            this.config = config;
             this.initialized = true;
             console.log('配置服務初始化完成');
         } catch (error) {
-            console.error('配置服務初始化失敗:', error);
+            console.error('初始化配置服務失敗:', error);
             throw error;
         }
     }
 
     async loadConfig() {
-        try {
-            // 如果已經有緩存的配置，直接返回
-            if (this.config && this.initialized) {
-                console.log('使用緩存的配置');
-                return this.config;
-            }
-
-            // 嘗試從 API 獲取配置
-            try {
-                this.config = await apiService.getConfig(this.currentBot);
-                console.log('從 API 載入配置成功:', this.config);
-                return this.config;
-            } catch (error) {
-                console.error('從 API 載入配置失敗，使用預設配置:', error);
-                // 使用預設配置
-                this.config = {
-                    categories: {
-                        products: { 
-                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
-                            examples: '',
-                            rules: []
-                        },
-                        prices: {
-                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
-                            examples: '',
-                            rules: []
-                        },
-                        shipping: {
-                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
-                            examples: '',
-                            rules: []
-                        },
-                        promotions: {
-                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
-                            examples: '',
-                            rules: []
-                        },
-                        chat: {
-                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
-                            examples: '',
-                            rules: []
-                        },
-                        sensitive: {
-                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
-                            examples: '',
-                            rules: []
-                        }
-                    }
-                };
-                return this.config;
-            }
-        } catch (error) {
-            console.error('載入配置時發生未預期的錯誤:', error);
-            throw error;
+        if (!this.config) {
+            await this.init();
         }
+        return this.config;
     }
 
     async saveConfig(config) {
         try {
-            // 驗證配置格式
-            if (!config || !config.categories) {
-                throw new Error('Invalid configuration format');
+            const currentBot = this.getCurrentBot();
+            console.log(`正在保存 ${currentBot} 的配置...`);
+            const response = await apiService.saveConfig(currentBot, config);
+            if (response.success) {
+                this.config = config;
+                console.log('保存配置成功');
+                return true;
             }
-
-            // 檢查必要的類別是否存在
-            const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
-            for (const category of requiredCategories) {
-                if (!config.categories[category]) {
-                    config.categories[category] = { systemPrompt: '', examples: '', rules: [] };
-                }
-            }
-
-            // 保存配置
-            await apiService.saveConfig(config);
-            this.config = config;
-            console.log('保存配置成功');
+            return false;
         } catch (error) {
             console.error('保存配置失敗:', error);
             throw error;
@@ -197,9 +148,9 @@ class ConfigService {
                             <td><textarea class="form-control rule-response" rows="2">${rule.response || ''}</textarea></td>
                             <td>
                                 <select class="form-control rule-ratio">
-                                    <option value="0" ${rule.ratio === "0" ? 'selected' : ''}>0%</option>
-                                    <option value="50" ${rule.ratio === "50" ? 'selected' : ''}>50%</option>
-                                    <option value="100" ${rule.ratio === "100" ? 'selected' : ''}>100%</option>
+                                    <option value="0" ${Number(rule.ratio) === 0 ? 'selected' : ''}>0%</option>
+                                    <option value="50" ${Number(rule.ratio) === 50 ? 'selected' : ''}>50%</option>
+                                    <option value="100" ${Number(rule.ratio) === 100 ? 'selected' : ''}>100%</option>
                                 </select>
                             </td>
                             <td>
@@ -381,9 +332,14 @@ class ConfigService {
         return this.initialized;
     }
 
-    setCurrentBot(botId) {
-        this.currentBot = botId;
-        this.config = null;  // 清除緩存，強制重新載入
+    setCurrentBot(botName) {
+        this.currentBot = botName;
+        this.config = null;  // 清除配置緩存
+        console.log(`ConfigService: 當前 Bot 設置為 ${botName}，已清除配置緩存`);
+    }
+
+    getCurrentBot() {
+        return this.currentBot;
     }
 
     async getCurrentConfig() {
