@@ -98,21 +98,55 @@ class MessageService {
     // 處理測試訊息
     async testMessage(message) {
         try {
+            // 確保配置已初始化
+            if (!this.initialized) {
+                await this.init();
+            }
+
             // 獲取當前配置
             const config = await configService.getCurrentConfig();
-            if (!config || !config.categories) {
-                throw new Error('無法獲取配置或配置無效');
+            if (!config) {
+                throw new Error('無法獲取配置');
+            }
+
+            if (!config.categories || Object.keys(config.categories).length === 0) {
+                throw new Error('配置中沒有定義任何類別');
+            }
+
+            // 檢查配置格式
+            const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
+            const missingCategories = requiredCategories.filter(cat => !config.categories[cat]);
+            if (missingCategories.length > 0) {
+                throw new Error(`配置缺少必要類別: ${missingCategories.join(', ')}`);
+            }
+
+            // 確保每個類別都有必要的屬性
+            for (const category of Object.values(config.categories)) {
+                if (!category.systemPrompt) category.systemPrompt = '';
+                if (!category.examples) category.examples = '';
+                if (!Array.isArray(category.rules)) category.rules = [];
             }
 
             // 準備發送給GPT的數據
             const gptData = {
                 message: message,
-                categories: config.categories
+                botType: configService.currentBot,
+                config: {
+                    categories: {
+                        products: config.categories.products,
+                        prices: config.categories.prices,
+                        shipping: config.categories.shipping,
+                        promotions: config.categories.promotions,
+                        chat: config.categories.chat,
+                        sensitive: config.categories.sensitive
+                    }
+                }
             };
 
             console.log('Sending test message request:', {
                 message: message,
-                categoriesCount: Object.keys(config.categories).length
+                botType: configService.currentBot,
+                categoriesCount: Object.keys(gptData.config.categories).length
             });
 
             // 發送到後端API進行處理
@@ -125,31 +159,120 @@ class MessageService {
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('API response error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    body: errorText
-                });
-                throw new Error(`API請求失敗: ${response.status} ${response.statusText} - ${errorText}`);
+                const errorData = await response.json();
+                console.error('API response error:', errorData);
+                throw new Error(`API請求失敗: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
             }
 
             const result = await response.json();
-            console.log('API response success:', result);
-
-            return {
-                category: result.category,           // 判斷的類別
-                intent: result.intent,               // 語義意圖
-                confidence: result.confidence,       // 判斷信心度
-                matchedKeywords: result.keywords,    // 匹配的關鍵詞
-                generatedContent: result.content,    // 生成的內容
-                dynamicRatio: result.ratio || 0,     // 動態比例
-                style: result.style || 'friendly'    // 語言風格
-            };
+            return result;
         } catch (error) {
             console.error('測試訊息處理失敗:', error);
             throw error;
         }
+    }
+
+    // 處理訊息
+    async processMessageWithGPT(message, botConfig) {
+        try {
+            // 1. 檢查敏感詞
+            if (this.containsSensitiveWords(message, botConfig.sensitiveWords)) {
+                console.log('檢測到敏感詞，忽略訊息');
+                return null;
+            }
+
+            // 2. 準備分析提示
+            const analysisPrompt = `
+分析以下訊息並以JSON格式回傳結果：
+1. 判斷最適合的類別（從以下選擇）：${Object.keys(botConfig.categories).join(', ')}
+2. 分析語義意圖
+3. 提供判斷信心度（0-1）
+4. 識別關鍵詞
+5. 如果需要生成回應，請提供建議的動態比例（0, 0.5, 或 1）
+
+輸出格式：
+{
+    "category": "類別名稱",
+    "intent": "語義意圖描述",
+    "confidence": 0.95,
+    "keywords": ["關鍵詞1", "關鍵詞2"],
+    "dynamicRatio": 0.5
+}
+
+用戶訊息：${message}`;
+
+            // 3. 進行分析
+            const analysisMessages = [
+                {
+                    role: 'system',
+                    content: '你是一個專業的訊息分析助手，專門進行意圖識別和語義分析。請只回傳要求的JSON格式。'
+                },
+                {
+                    role: 'user',
+                    content: analysisPrompt
+                }
+            ];
+
+            const analysisResult = JSON.parse(await this.callOpenAI(analysisMessages));
+            console.log('分析結果:', analysisResult);
+
+            // 4. 根據分析結果生成回應
+            const selectedCategory = botConfig.categories[analysisResult.category];
+            if (!selectedCategory) {
+                throw new Error(`未找到對應類別: ${analysisResult.category}`);
+            }
+
+            // 5. 根據動態比例決定回應方式
+            let finalResponse;
+            const dynamicRatio = analysisResult.dynamicRatio;
+
+            if (dynamicRatio === 0) {
+                // 使用完全固定回應
+                finalResponse = selectedCategory.fixedResponse;
+            } else {
+                // 準備生成回應的提示
+                const generationPrompt = `
+根據以下資訊生成回應：
+意圖: ${analysisResult.intent}
+關鍵詞: ${analysisResult.keywords.join(', ')}
+動態比例: ${dynamicRatio}
+固定回應: ${selectedCategory.fixedResponse}
+風格指南: ${selectedCategory.styleGuide || '友善且專業的語氣'}
+
+${dynamicRatio === 0.5 ? '保留約50%固定回應的核心內容，並動態生成其餘部分' : '保留核心訊息，但完全重新生成回應'}
+`;
+
+                const generationMessages = [
+                    {
+                        role: 'system',
+                        content: selectedCategory.systemPrompt
+                    },
+                    {
+                        role: 'user',
+                        content: generationPrompt
+                    }
+                ];
+
+                finalResponse = await this.callOpenAI(generationMessages);
+            }
+
+            return finalResponse;
+        } catch (error) {
+            console.error('處理訊息失敗:', error);
+            throw error;
+        }
+    }
+
+    // 檢查敏感詞
+    containsSensitiveWords(message, sensitiveWords = []) {
+        if (!Array.isArray(sensitiveWords) || sensitiveWords.length === 0) {
+            return false;
+        }
+        
+        const lowerMessage = message.toLowerCase();
+        return sensitiveWords.some(word => 
+            lowerMessage.includes(word.toLowerCase())
+        );
     }
 
     // 初始化 OpenAI
@@ -200,27 +323,6 @@ class MessageService {
             return data.choices[0].message.content;
         } catch (error) {
             console.error('呼叫 OpenAI API 失敗:', error);
-            throw error;
-        }
-    }
-
-    // 處理訊息
-    async processMessageWithGPT(message, botConfig) {
-        try {
-            const messages = [
-                {
-                    role: 'system',
-                    content: botConfig.systemPrompt || '你是一個有幫助的助手。'
-                },
-                {
-                    role: 'user',
-                    content: message
-                }
-            ];
-
-            return await this.callOpenAI(messages);
-        } catch (error) {
-            console.error('處理訊息失敗:', error);
             throw error;
         }
     }

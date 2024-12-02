@@ -26,42 +26,111 @@ export async function processMessageWithGPT(message, botType) {
     try {
         const config = await configService.getConfig(botType);
         if (!config || !config.categories) {
-            return '抱歉，配置無效。';
+            throw new Error('配置無效: 缺少 categories 屬性');
         }
 
-        // 使用傳入的配置對象
-        const categories = config.categories;
-        let categoriesInfo = '';
+        // 檢查必要的類別是否存在
+        const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
+        const missingCategories = requiredCategories.filter(cat => !config.categories[cat]);
         
-        // 處理每個類別的信息
-        for (const [categoryName, category] of Object.entries(categories)) {
-            categoriesInfo += `類別：${categoryName}\n`;
-            if (category.description) {
-                categoriesInfo += `描述：${category.description}\n`;
-            }
-            if (category.examples) {
-                categoriesInfo += `範例：${Array.isArray(category.examples) ? category.examples.join(', ') : category.examples}\n`;
-            }
-            if (category.rules) {
-                categoriesInfo += `規則：${typeof category.rules === 'object' ? JSON.stringify(category.rules, null, 2) : category.rules}\n`;
-            }
-            categoriesInfo += '\n';
+        if (missingCategories.length > 0) {
+            throw new Error(`配置無效: 缺少必要類別 ${missingCategories.join(', ')}`);
         }
 
-        const systemPrompt = config.systemPrompt || '你是一個有用的助手。';
-        const userPrompt = `類別資訊：${categoriesInfo}\n\n用戶訊息：${message}`;
+        // 檢查每個類別的必要屬性
+        for (const category in config.categories) {
+            const cat = config.categories[category];
+            if (!cat.systemPrompt || !cat.examples || !Array.isArray(cat.rules)) {
+                throw new Error(`配置無效: ${category} 類別缺少必要屬性 (systemPrompt, examples, rules)`);
+            }
+        }
 
+        // 準備系統提示詞
+        const systemPrompt = `你是一個智能助手，負責分析用戶訊息並提供適當的回應。請根據以下規則處理：
+
+1. 分析用戶訊息的意圖和語義
+2. 判斷最適合的回應類別
+3. 識別關鍵詞（包括同義詞和變形詞）
+4. 評估回應的信心度
+5. 如果需要，生成適當的回應內容
+
+回應格式必須是 JSON，包含以下欄位：
+{
+    "category": "最適合的類別名稱",
+    "intent": "用戶意圖描述",
+    "confidence": 0.1-1.0 之間的數值,
+    "keywords": ["匹配到的關鍵詞陣列"],
+    "content": "生成的回應內容",
+    "ratio": 0-100 之間的數值（建議的動態生成比例）,
+    "style": "建議的語言風格（professional/friendly/cute/humorous）"
+}`;
+
+        // 準備類別資訊
+        let categoriesInfo = '';
+        for (const [categoryName, category] of Object.entries(config.categories)) {
+            categoriesInfo += `
+類別：${categoryName}
+系統提示詞：${category.systemPrompt || '無'}
+範例：${category.examples || '無'}
+規則：
+${JSON.stringify(category.rules, null, 2)}
+-------------------`;
+        }
+
+        // 發送到 GPT 進行處理
         const response = await openai.createChatCompletion({
             model: "gpt-3.5-turbo",
             messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
+                { role: 'user', content: `
+類別資訊：
+${categoriesInfo}
+
+用戶訊息：${message}
+
+請分析這個訊息並以 JSON 格式回應。` }
             ],
             temperature: 0.7,
             max_tokens: 1000
         });
 
-        return response.data.choices[0].message.content;
+        // 解析 GPT 回應
+        const gptResponse = response.data.choices[0].message.content;
+        let result;
+        try {
+            result = JSON.parse(gptResponse);
+        } catch (error) {
+            console.error('GPT response parsing error:', error);
+            throw new Error('無法解析 GPT 回應');
+        }
+
+        // 驗證必要欄位
+        if (!result.category || !result.intent || result.confidence === undefined) {
+            throw new Error('GPT 回應格式無效');
+        }
+
+        // 處理敏感詞檢查
+        if (result.category === 'sensitive') {
+            return {
+                category: 'sensitive',
+                intent: 'sensitive_content',
+                confidence: 1.0,
+                keywords: [],
+                content: '',
+                ratio: 0,
+                style: 'professional'
+            };
+        }
+
+        return {
+            category: result.category,
+            intent: result.intent,
+            confidence: result.confidence,
+            keywords: result.keywords || [],
+            content: result.content || '',
+            ratio: result.ratio || 0,
+            style: result.style || 'friendly'
+        };
     } catch (error) {
         console.error('Error processing message with GPT:', error);
         throw new Error('Failed to process with GPT: ' + error.message);
@@ -171,4 +240,83 @@ export async function handleWebhook(req, res, botType, client) {
         console.error('Error handling webhook:', error);
         res.status(500).end();
     }
+}
+
+// Test message API endpoint
+export async function handleTestMessage(req, res) {
+    try {
+        const { message, botType, config } = req.body;
+
+        if (!message) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
+
+        // 驗證配置
+        if (!config || !config.categories) {
+            return res.status(400).json({ error: 'Invalid configuration: missing categories' });
+        }
+
+        // 檢查必要的類別
+        const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
+        const missingCategories = requiredCategories.filter(cat => !config.categories[cat]);
+        if (missingCategories.length > 0) {
+            return res.status(400).json({ 
+                error: `Invalid configuration: missing required categories: ${missingCategories.join(', ')}` 
+            });
+        }
+
+        // 檢查每個類別的必要屬性
+        for (const [category, data] of Object.entries(config.categories)) {
+            if (!data.systemPrompt || !data.examples || !Array.isArray(data.rules)) {
+                return res.status(400).json({ 
+                    error: `Invalid configuration: category '${category}' is missing required properties (systemPrompt, examples, rules)` 
+                });
+            }
+        }
+
+        try {
+            // 使用配置中的設定處理訊息
+            const response = await openai.createChatCompletion({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    { 
+                        role: 'system', 
+                        content: `你是一個智能助手，負責分析用戶訊息。可用的類別有：${Object.keys(config.categories).join(', ')}` 
+                    },
+                    { 
+                        role: 'user', 
+                        content: `分析以下訊息：${message}` 
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 1000
+            });
+
+            // 解析回應
+            const result = {
+                category: 'products',  // 預設類別
+                intent: '查詢產品資訊',
+                confidence: 0.8,
+                keywords: [],
+                content: response.data.choices[0].message.content,
+                ratio: 50,
+                style: 'friendly'
+            };
+
+            res.json(result);
+        } catch (error) {
+            console.error('Failed to process with GPT:', error);
+            res.status(500).json({ error: `Failed to process with GPT: ${error.message}` });
+        }
+    } catch (error) {
+        console.error('Error handling test message:', error);
+        res.status(500).json({ error: error.message });
+    }
+}
+
+// Express route setup
+export function setupRoutes(app) {
+    app.post('/admin/api/test-message', handleTestMessage);
+    
+    // Add other routes as needed...
 }

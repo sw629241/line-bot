@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import fs from 'fs/promises';
 import path from 'path';
 import { Client } from '@line/bot-sdk';
-import { handleMessageEvent, processMessageWithGPT } from './admin/server.js';
+import { handleMessageEvent, processMessageWithGPT, handleTestMessage, setupRoutes } from './admin/server.js';
 import { Configuration, OpenAIApi } from 'openai';
 
 // Load environment variables
@@ -45,6 +45,9 @@ app.use('/admin', express.static('admin', {
     }
   }
 }));
+
+// Set up admin routes
+setupRoutes(app);
 
 // Serve admin.html for /admin/ path
 app.get('/admin/', (req, res) => {

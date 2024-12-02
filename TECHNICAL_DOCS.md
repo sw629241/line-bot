@@ -1,5 +1,26 @@
 # LINE Bot 專案配置文檔
 
+## 專案基本資訊
+
+### 環境變數
+```
+LINE_CHANNEL_ACCESS_TOKEN=你的主要頻道存取權杖
+LINE_CHANNEL_SECRET=你的主要頻道密鑰
+LINE_CHANNEL_ACCESS_TOKEN_2=你的次要頻道存取權杖
+LINE_CHANNEL_SECRET_2=你的次要頻道密鑰
+PORT=80
+NODE_ENV=production
+```
+
+### API 端點
+- `GET /health`: 健康檢查
+- `POST /webhook1`: 主要 Bot webhook
+- `POST /webhook2`: 次要 Bot webhook
+- `GET /admin`: 管理介面
+- `GET /admin/api/get-config/:botId`: 獲取 Bot 配置
+- `POST /admin/api/save-config/:botId`: 保存 Bot 配置
+- `POST /admin/api/test/:botId/:category`: 測試回應
+
 ## 系統環境配置
 
 ### 基礎環境
@@ -92,6 +113,40 @@
 
 ## 系統架構
 
+### 專案結構
+```
+linebot/
+├── admin/                    # 管理介面
+│   ├── components/          # UI 組件
+│   │   ├── header.html     # 頁面頭部
+│   │   ├── bot-selector.html    # Bot 選擇器
+│   │   ├── category-tabs.html   # 類別標籤
+│   │   ├── gpt-settings.html    # GPT 設定區塊
+│   │   ├── reply-rules.html     # 回覆規則區塊
+│   │   └── test-area.html       # 測試區域
+│   ├── sxi-bot/            # SXI Bot 配置
+│   │   └── config.json     # Bot 設定檔
+│   ├── fas-bot/            # FAS Bot 配置
+│   │   └── config.json     # Bot 設定檔
+│   ├── admin.html          # 管理介面主頁面
+│   ├── admin.js            # 管理介面主要邏輯
+│   ├── styles.css          # 管理介面樣式
+│   ├── messageService.js   # 訊息處理服務
+│   ├── configService.js    # 配置管理服務
+│   ├── apiService.js       # API 服務
+│   ├── ui.js              # UI 互動邏輯
+│   └── server.js          # 後端服務器
+├── logs/                   # 日誌目錄
+│   └── primary_webhook_events.log  # Webhook 事件日誌
+├── app.js                 # 主應用程式入口
+├── index.html            # 主頁面
+├── .env                  # 環境變數配置
+├── docker-compose.yml    # Docker 配置
+├── Dockerfile           # Docker 建構檔
+├── package.json         # 專案依賴配置
+└── package-lock.json    # 依賴版本鎖定
+```
+
 ### 1. 核心模塊
 
 #### 1.1 入口模塊 (`app.js`)
@@ -166,94 +221,78 @@ LINE Webhook -> server.js 處理 -> OpenAI 生成 -> LINE 回覆
 ```json
 {
   "categories": {
-    "product": { 
-      "systemPrompt": string,
-      "examples": string,
-      "rules": array
+    "products": {
+      "systemPrompt": string,    # GPT 系統提示詞
+      "examples": string,        # 對話範例
+      "rules": [
+        {
+          "keywords": string,    # 關鍵字
+          "response": string,    # 回應內容
+          "ratio": number,       # 動態生成比例 (0-100)
+          "style": string       # 回應風格 (friendly, humorous, professional 等)
+        }
+      ]
     },
-    "price": { ... },
+    "prices": { ... },
     "shipping": { ... },
-    "promotion": { ... },
+    "promotions": { ... },
     "chat": { ... },
     "sensitive": { ... }
   }
 }
 ```
 
-#### 3.2 界面組件
-- **header.html**: 頁面頭部組件
-- **bot-selector.html**: Bot 選擇器
-- **category-tabs.html**: 類別標籤
-- **gpt-settings.html**: GPT 設定區塊
-- **reply-rules.html**: 回覆規則區塊
-- **test-area.html**: 測試區域
+## 配置規範
 
-## 開發規範
+### 命名規範
+- 類別名稱統一使用複數形式：
+  - ✅ 正確：`products`, `prices`, `promotions`
+  - ❌ 錯誤：`product`, `price`, `promotion`
 
-### 1. 代碼規範
-- 使用 async/await 處理異步操作
-- 使用 try/catch 進行錯誤處理
-- 確保適當的錯誤日誌記錄
-- 遵循環境隔離原則：
-  * 前端不直接操作文件系統
-  * 後端不依賴瀏覽器環境
-  * 共享代碼考慮運行環境差異
+### 必要類別
+系統要求以下類別必須存在：
+- `products`: 產品相關查詢
+- `prices`: 價格相關查詢
+- `shipping`: 運送相關查詢
+- `promotions`: 促銷活動查詢
+- `chat`: 一般對話
+- `sensitive`: 敏感詞處理
 
-### 2. 待優化事項
-- **重複代碼整合**：
-  * 消息處理（processMessageWithGPT）
-  * 事件處理（handleMessageEvent 等）
-- **建議方案**：
-  * 創建共享模塊（types.js, constants.js, utils.js）
-  * 抽象消息處理邏輯
-  * 實現依賴注入
+### 類別配置結構
+每個類別必須包含以下屬性：
+```json
+{
+  "systemPrompt": "GPT 系統提示詞",
+  "examples": "對話範例",
+  "rules": [
+    {
+      "keywords": "關鍵字",
+      "response": "回應內容",
+      "ratio": 50,
+      "style": "friendly"
+    }
+  ]
+}
+```
 
-### 3. 安全考慮
-- 所有配置文件操作需進行權限驗證
-- API 調用需要適當的錯誤處理
-- 敏感信息使用環境變量管理
+- `systemPrompt`: 字串，定義 GPT 的行為準則
+- `examples`: 字串，提供對話範例
+- `rules`: 陣列，包含回應規則
+  - `keywords`: 觸發關鍵字
+  - `response`: 預設回應內容
+  - `ratio`: 動態生成比例 (0-100)
+  - `style`: 回應風格 (friendly/professional/humorous)
 
-### 4. 錯誤處理機制
-- **Webhook 錯誤處理**：
-  * 請求簽名驗證
-  * JSON 解析錯誤處理
-  * LINE API 錯誤處理
-  * OpenAI API 錯誤處理
-- **錯誤日誌記錄**：
-  * 錯誤類型分類
-  * 錯誤堆疊追蹤
-  * 請求相關信息記錄
-  * 系統狀態記錄
+### 配置驗證
+系統會在以下時機驗證配置：
+1. 載入配置時
+2. 保存配置時
+3. 測試訊息時
 
-### 5. 安全性更新
-- **請求驗證**：
-  * LINE Webhook 簽名驗證
-  * 請求來源驗證
-  * 請求內容驗證
-- **錯誤響應**：
-  * 統一錯誤響應格式
-  * 適當的 HTTP 狀態碼
-  * 敏感信息過濾
-- **安全標頭**：
-  * Content-Security-Policy
-  * X-Content-Type-Options
-  * X-Frame-Options
-  * X-XSS-Protection
-
-### 6. 系統監控
-- **性能監控**：
-  * 請求響應時間
-  * API 調用延遲
-  * 系統資源使用
-- **錯誤監控**：
-  * 錯誤率統計
-  * 錯誤類型分析
-  * 系統健康狀態
-- **日誌管理**：
-  * 結構化日誌格式
-  * 日誌輪轉策略
-  * 日誌分析工具
+如果配置無效，系統會提供具體的錯誤訊息，指出：
+- 缺少哪些必要類別
+- 哪些類別缺少必要屬性
+- 屬性格式是否正確
 
 ## 版本信息
-- 最後更新：2024-01-09
-- 狀態：所有端點已測試和驗證
+- 最後更新：2024-12-02

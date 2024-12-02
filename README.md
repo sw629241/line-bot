@@ -66,95 +66,15 @@ npm test
 npm run build
 ```
 
-## 專案結構
-```
-linebot/
-├── admin/              # 管理介面
-│   ├── components/     # UI 組件
-│   ├── api.js         # API 函數
-│   └── admin.js       # 管理邏輯
-├── webhook/           # Webhook 處理器
-│   ├── primary.js    # 主要 Bot
-│   └── secondary.js  # 次要 Bot
-├── config/           # 配置檔案
-├── test/            # 測試檔案
-└── app.js          # 主應用程式
-```
+## 技術文檔
+詳細的技術文檔，包括：
+- 專案結構
+- API 端點說明
+- 環境變數配置
+- 系統架構說明
+- 開發指南
 
-## 環境變數
-```
-LINE_CHANNEL_ACCESS_TOKEN=你的主要頻道存取權杖
-LINE_CHANNEL_SECRET=你的主要頻道密鑰
-LINE_CHANNEL_ACCESS_TOKEN_2=你的次要頻道存取權杖
-LINE_CHANNEL_SECRET_2=你的次要頻道密鑰
-PORT=80
-NODE_ENV=production
-```
-
-## API 端點
-- `GET /health`: 健康檢查
-- `POST /webhook1`: 主要 Bot webhook
-- `POST /webhook2`: 次要 Bot webhook
-- `GET /admin`: 管理介面
-- `GET /admin/api/get-config/:botId`: 獲取 Bot 配置
-- `POST /admin/api/save-config/:botId`: 保存 Bot 配置
-- `POST /admin/api/test/:botId/:category`: 測試回應
-
-## 管理介面功能
-管理介面提供以下功能：
-
-### Bot 選擇
-- 切換不同的 Bot 配置
-- 顯示當前活動的 Bot
-
-### 類別管理
-支援以下回應類別：
-1. 產品資訊
-2. 價格查詢
-3. 運送資訊
-4. 促銷活動
-5. 一般對話
-6. 敏感詞
-
-### 配置管理
-每個類別包含兩個主要部分：
-1. GPT 設定
-2. 回覆規則
-
-#### GPT 設定
-1. **提示詞**
-   - 設定 GPT 的基本行為
-   - 定義類別外，或不確定問題的回應方式
-
-2. **範例**
-   - 提供對話範例
-   - 該類別中，一些特殊情況的範例
-
-#### 回覆規則
-1. **關鍵字**
-   - 交由GPT透過語意及意圖判斷關鍵字是否匹配
-   - 設定觸發條件，支援多關鍵字匹配
-
-2. **固定回覆**
-   - 透過關鍵字觸發要帶入的內容。
-   - 例如 動態生成比例設定 0%，這裡的內容將完全一樣的來回覆。
-   - 配合關鍵字使用。
-
-3. **動態生成比例**
-   - 0%、50%、100%，三個檔位
-   - 設定為 0%，將完全按照固定回覆內容。
-   - 設定為 100% 將固定回覆內容中的核心內容，生成一條全新的內容。
-   - 配合固定回覆使用。
-
-4. **回應風格**
-   - 定義回應語氣
-   - 可選：專業、親切、少女、幽默
-   - 配合動態生成使用。
-
-### 測試功能
-- 即時測試訊息回應
-- 顯示匹配規則資訊
-- 提供回應生成過程
+請參考 [TECHNICAL_DOCS.md](TECHNICAL_DOCS.md)
 
 ## 系統運作機制
 

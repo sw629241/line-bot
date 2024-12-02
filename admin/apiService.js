@@ -58,10 +58,25 @@ class ApiService {
 
     async getConfig() {
         try {
-            const config = await this.sendRequest(`/admin/api/get-config/${this.currentBot}`);
-            if (!config || !config.categories) {
-                throw new Error('無效的配置格式');
+            // 使用完整的 API 路徑
+            const response = await fetch(`/admin/${this.currentBot}/config.json`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            const config = await response.json();
+            
+            // 驗證配置格式
+            if (!config || !config.categories) {
+                throw new Error('無效的配置格式: 缺少 categories 屬性');
+            }
+            
+            // 驗證必要的類別
+            const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
+            const missingCategories = requiredCategories.filter(cat => !config.categories[cat]);
+            if (missingCategories.length > 0) {
+                throw new Error(`無效的配置格式: 缺少必要類別 ${missingCategories.join(', ')}`);
+            }
+            
             return config;
         } catch (error) {
             console.error('獲取配置失敗:', error);

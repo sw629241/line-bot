@@ -27,22 +27,53 @@ class ConfigService {
                 return this.config;
             }
 
-            this.config = await apiService.getConfig(this.currentBot);
-            console.log('載入配置成功:', this.config);
-            return this.config;
+            // 嘗試從 API 獲取配置
+            try {
+                this.config = await apiService.getConfig(this.currentBot);
+                console.log('從 API 載入配置成功:', this.config);
+                return this.config;
+            } catch (error) {
+                console.error('從 API 載入配置失敗，使用預設配置:', error);
+                // 使用預設配置
+                this.config = {
+                    categories: {
+                        products: { 
+                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
+                            examples: '',
+                            rules: []
+                        },
+                        prices: {
+                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
+                            examples: '',
+                            rules: []
+                        },
+                        shipping: {
+                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
+                            examples: '',
+                            rules: []
+                        },
+                        promotions: {
+                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
+                            examples: '',
+                            rules: []
+                        },
+                        chat: {
+                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
+                            examples: '',
+                            rules: []
+                        },
+                        sensitive: {
+                            systemPrompt: '不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"',
+                            examples: '',
+                            rules: []
+                        }
+                    }
+                };
+                return this.config;
+            }
         } catch (error) {
-            console.error('載入配置失敗:', error);
-            this.config = {
-                categories: {
-                    product: { systemPrompt: '', examples: '', rules: [] },
-                    price: { systemPrompt: '', examples: '', rules: [] },
-                    shipping: { systemPrompt: '', examples: '', rules: [] },
-                    promotion: { systemPrompt: '', examples: '', rules: [] },
-                    chat: { systemPrompt: '', examples: '', rules: [] },
-                    sensitive: { systemPrompt: '', examples: '', rules: [] }
-                }
-            };
-            return this.config;
+            console.error('載入配置時發生未預期的錯誤:', error);
+            throw error;
         }
     }
 
@@ -54,7 +85,7 @@ class ConfigService {
             }
 
             // 檢查必要的類別是否存在
-            const requiredCategories = ['product', 'price', 'shipping', 'promotion', 'chat', 'sensitive'];
+            const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
             for (const category of requiredCategories) {
                 if (!config.categories[category]) {
                     config.categories[category] = { systemPrompt: '', examples: '', rules: [] };
@@ -356,10 +387,15 @@ class ConfigService {
     }
 
     async getCurrentConfig() {
-        if (!this.config) {
-            await this.loadConfig();
+        try {
+            if (!this.config || !this.initialized) {
+                await this.loadConfig();
+            }
+            return this.config;
+        } catch (error) {
+            console.error('獲取當前配置失敗:', error);
+            throw error;
         }
-        return this.config;
     }
 
     showAlert(type, message) {
