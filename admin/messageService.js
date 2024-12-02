@@ -109,143 +109,124 @@ class MessageService {
                 throw new Error('無法獲取配置');
             }
 
-            if (!config.categories || Object.keys(config.categories).length === 0) {
-                throw new Error('配置中沒有定義任何類別');
+            // 檢查敏感詞
+            if (this.containsSensitiveWords(message, config.categories.sensitive?.rules?.map(r => r.keywords).flat() || [])) {
+                return {
+                    category: 'sensitive',
+                    intent: '敏感詞檢測',
+                    confidence: 1.0,
+                    keywords: ['敏感詞'],
+                    dynamicRatio: 0,
+                    response: null
+                };
             }
 
-            // 檢查配置格式
-            const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
-            const missingCategories = requiredCategories.filter(cat => !config.categories[cat]);
-            if (missingCategories.length > 0) {
-                throw new Error(`配置缺少必要類別: ${missingCategories.join(', ')}`);
-            }
+            // 檢查關鍵詞匹配
+            let matchedCategory = null;
+            let matchedRule = null;
+            let matchedKeywords = [];
 
-            // 確保每個類別都有必要的屬性
-            for (const category of Object.values(config.categories)) {
-                if (!category.systemPrompt) category.systemPrompt = '';
-                if (!category.examples) category.examples = '';
-                if (!Array.isArray(category.rules)) category.rules = [];
-            }
+            // 遍歷所有類別尋找匹配的規則
+            for (const [category, categoryConfig] of Object.entries(config.categories)) {
+                if (category === 'sensitive') continue;
+                
+                for (const rule of (categoryConfig.rules || [])) {
+                    // 檢查每個關鍵詞
+                    const keywords = Array.isArray(rule.keywords) ? rule.keywords : [rule.keywords];
+                    const matched = keywords.some(keyword => {
+                        // 將關鍵詞轉換為正則表達式模式
+                        const pattern = keyword
+                            .replace(/\s+/g, '\\s*')  // 處理空格
+                            .replace(/和|與|跟/g, '[和與跟]');  // 處理連接詞變化
+                        const regex = new RegExp(pattern, 'i');
+                        return regex.test(message);
+                    });
 
-            // 準備發送給GPT的數據
-            const gptData = {
-                message: message,
-                botType: configService.currentBot,
-                config: {
-                    categories: {
-                        products: config.categories.products,
-                        prices: config.categories.prices,
-                        shipping: config.categories.shipping,
-                        promotions: config.categories.promotions,
-                        chat: config.categories.chat,
-                        sensitive: config.categories.sensitive
+                    if (matched) {
+                        matchedCategory = category;
+                        matchedRule = rule;
+                        matchedKeywords = keywords;
+                        break;
                     }
                 }
-            };
-
-            console.log('Sending test message request:', {
-                message: message,
-                botType: configService.currentBot,
-                categoriesCount: Object.keys(gptData.config.categories).length
-            });
-
-            // 發送到後端API進行處理
-            const response = await fetch('/admin/api/test-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(gptData)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('API response error:', errorData);
-                throw new Error(`API請求失敗: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
+                if (matchedCategory) break;
             }
 
-            const result = await response.json();
+            // 返回分析結果
+            const result = {
+                category: matchedCategory || 'unknown',
+                intent: matchedCategory ? '查詢產品資訊' : 'unknown',
+                confidence: matchedCategory ? 0.8 : 0.0,
+                keywords: matchedKeywords,
+                dynamicRatio: matchedRule ? (typeof matchedRule.ratio === 'string' ? parseInt(matchedRule.ratio) : matchedRule.ratio) : 0,
+                style: matchedRule?.style || 'friendly',
+                response: matchedRule?.response || config.categories[matchedCategory]?.systemPrompt || '已通知小編進行回覆，請稍等。'
+            };
+
+            console.log('測試訊息分析結果:', result);
             return result;
+
         } catch (error) {
             console.error('測試訊息處理失敗:', error);
-            throw error;
+            return {
+                category: 'error',
+                intent: 'error',
+                confidence: 0.0,
+                keywords: [],
+                dynamicRatio: 0,
+                style: 'friendly',
+                response: '處理訊息時發生錯誤'
+            };
         }
     }
 
     // 處理訊息
     async processMessageWithGPT(message, botConfig) {
         try {
-            // 1. 檢查敏感詞
-            if (this.containsSensitiveWords(message, botConfig.sensitiveWords)) {
-                console.log('檢測到敏感詞，忽略訊息');
-                return null;
+            // 1. 先進行測試分析獲取基本信息
+            const analysisResult = await this.testMessage(message);
+            console.log('GPT分析結果:', analysisResult);
+
+            // 如果是敏感詞或錯誤，直接返回
+            if (analysisResult.category === 'sensitive' || analysisResult.category === 'error') {
+                return analysisResult.response || '已通知小編進行回覆，請稍等。';
             }
 
-            // 2. 準備分析提示
-            const analysisPrompt = `
-分析以下訊息並以JSON格式回傳結果：
-1. 判斷最適合的類別（從以下選擇）：${Object.keys(botConfig.categories).join(', ')}
-2. 分析語義意圖
-3. 提供判斷信心度（0-1）
-4. 識別關鍵詞
-5. 如果需要生成回應，請提供建議的動態比例（0, 0.5, 或 1）
-
-輸出格式：
-{
-    "category": "類別名稱",
-    "intent": "語義意圖描述",
-    "confidence": 0.95,
-    "keywords": ["關鍵詞1", "關鍵詞2"],
-    "dynamicRatio": 0.5
-}
-
-用戶訊息：${message}`;
-
-            // 3. 進行分析
-            const analysisMessages = [
-                {
-                    role: 'system',
-                    content: '你是一個專業的訊息分析助手，專門進行意圖識別和語義分析。請只回傳要求的JSON格式。'
-                },
-                {
-                    role: 'user',
-                    content: analysisPrompt
+            // 2. 如果找到匹配的類別和規則
+            if (analysisResult.category !== 'unknown' && analysisResult.response) {
+                // 根據動態比例決定是否需要生成新內容
+                if (analysisResult.dynamicRatio === 0) {
+                    // 直接使用固定回應
+                    return analysisResult.response;
                 }
-            ];
 
-            const analysisResult = JSON.parse(await this.callOpenAI(analysisMessages));
-            console.log('分析結果:', analysisResult);
-
-            // 4. 根據分析結果生成回應
-            const selectedCategory = botConfig.categories[analysisResult.category];
-            if (!selectedCategory) {
-                throw new Error(`未找到對應類別: ${analysisResult.category}`);
-            }
-
-            // 5. 根據動態比例決定回應方式
-            let finalResponse;
-            const dynamicRatio = analysisResult.dynamicRatio;
-
-            if (dynamicRatio === 0) {
-                // 使用完全固定回應
-                finalResponse = selectedCategory.fixedResponse;
-            } else {
-                // 準備生成回應的提示
+                // 3. 準備生成新內容
                 const generationPrompt = `
-根據以下資訊生成回應：
-意圖: ${analysisResult.intent}
-關鍵詞: ${analysisResult.keywords.join(', ')}
-動態比例: ${dynamicRatio}
-固定回應: ${selectedCategory.fixedResponse}
-風格指南: ${selectedCategory.styleGuide || '友善且專業的語氣'}
+作為客服助手，請根據以下信息生成回應：
 
-${dynamicRatio === 0.5 ? '保留約50%固定回應的核心內容，並動態生成其餘部分' : '保留核心訊息，但完全重新生成回應'}
-`;
+用戶訊息：${message}
+意圖分析：${analysisResult.intent}
+匹配關鍵詞：${analysisResult.keywords.join(', ')}
+原始回應：${analysisResult.response}
+動態生成比例：${analysisResult.dynamicRatio}%
+語言風格：${analysisResult.style}
 
+生成要求：
+${analysisResult.dynamicRatio === 50 ? 
+    '1. 保留50%原始回應的核心內容\n2. 重新組織語句，但確保資訊準確性' : 
+    '1. 保留核心訊息\n2. 完全重新生成回應，但確保資訊準確性'}
+3. 使用${analysisResult.style}的語言風格
+4. 保持專業性和準確性
+5. 確保回應流暢自然
+
+請直接返回生成的回應內容，不要加入任何額外的說明或標記。`;
+
+                // 4. 調用 GPT 生成回應
                 const generationMessages = [
                     {
                         role: 'system',
-                        content: selectedCategory.systemPrompt
+                        content: botConfig.categories[analysisResult.category]?.systemPrompt || 
+                                '你是一個專業的客服助手，請用自然且專業的方式回答問題。'
                     },
                     {
                         role: 'user',
@@ -253,13 +234,18 @@ ${dynamicRatio === 0.5 ? '保留約50%固定回應的核心內容，並動態生
                     }
                 ];
 
-                finalResponse = await this.callOpenAI(generationMessages);
+                const generatedResponse = await this.callOpenAI(generationMessages);
+                
+                // 5. 返回生成的回應
+                return generatedResponse.trim() || analysisResult.response;
             }
 
-            return finalResponse;
+            // 如果沒有匹配到任何規則，返回預設回應
+            return botConfig.categories.chat?.systemPrompt || '已通知小編進行回覆，請稍等。';
+
         } catch (error) {
             console.error('處理訊息失敗:', error);
-            throw error;
+            return '抱歉，我需要請小編協助回答這個問題。已通知小編，請稍候。';
         }
     }
 

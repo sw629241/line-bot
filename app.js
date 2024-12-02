@@ -6,12 +6,16 @@ import path from 'path';
 import { Client } from '@line/bot-sdk';
 import { handleMessageEvent, processMessageWithGPT, handleTestMessage, setupRoutes } from './admin/server.js';
 import { Configuration, OpenAIApi } from 'openai';
+import cors from 'cors';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 80;
+
+// Enable CORS
+app.use(cors());
 
 // Enable JSON parsing middleware
 app.use(express.json({
@@ -210,19 +214,10 @@ app.get('/admin/api/openai-key', (req, res) => {
 });
 
 // Configure Line bot webhook endpoints
-app.post('/webhook1', async (req, res) => {
-  const signature = req.headers['x-line-signature'];
-  
-  // Verify signature
-  if (!signature) {
-    return res.status(400).json({ error: 'Missing signature' });
-  }
-
+app.post('/webhook1', middleware(primaryLineConfig), async (req, res) => {
   try {
-    // Convert request body to string if it's not already
-    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     const events = req.body.events;
-
+    
     if (!Array.isArray(events)) {
       return res.status(400).json({ error: 'Invalid request body' });
     }
@@ -238,19 +233,10 @@ app.post('/webhook1', async (req, res) => {
   }
 });
 
-app.post('/webhook2', async (req, res) => {
-  const signature = req.headers['x-line-signature'];
-  
-  // Verify signature
-  if (!signature) {
-    return res.status(400).json({ error: 'Missing signature' });
-  }
-
+app.post('/webhook2', middleware(secondaryLineConfig), async (req, res) => {
   try {
-    // Convert request body to string if it's not already
-    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     const events = req.body.events;
-
+    
     if (!Array.isArray(events)) {
       return res.status(400).json({ error: 'Invalid request body' });
     }

@@ -10,17 +10,18 @@ RUN mkdir -p /app/logs && chmod 777 /app/logs
 # 複製 package.json 和 package-lock.json（如果存在）
 COPY package*.json ./
 
-# 安裝依賴（不在本地環境安裝）
-RUN npm install
+# 安裝依賴
+RUN npm install && npm cache clean --force
 
 # 複製應用程式代碼
 COPY . .
 
 # 設置環境變量
 ENV NODE_ENV=production
+ENV PORT=80
 
-# 暴露應用程式端口
-EXPOSE 3000
+# 確保日誌目錄存在並可寫
+RUN mkdir -p /app/admin/logs && chmod 777 /app/admin/logs
 
-# 設置啟動命令
+# 啟動應用程式
 CMD ["npm", "start"]
