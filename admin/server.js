@@ -61,8 +61,8 @@ export async function processMessageWithGPT(message, botType) {
     "confidence": 0.1-1.0 之間的數值,
     "keywords": ["匹配到的關鍵詞陣列"],
     "content": "生成的回應內容",
-    "ratio": 0-100 之間的數值（建議的動態生成比例）,
-    "style": "建議的語言風格（professional/friendly/cute/humorous）"
+    "ratio": "0-100 之間的數值（建議的動態生成比例，必須是字串）",
+    "style": "建議的語言風格（專業/親切/少女/幽默）"
 }`;
 
         // 準備類別資訊
@@ -117,8 +117,8 @@ ${categoriesInfo}
                 confidence: 1.0,
                 keywords: [],
                 content: '',
-                ratio: 0,
-                style: 'professional'
+                ratio: "0",
+                style: "專業"
             };
         }
 
@@ -128,8 +128,8 @@ ${categoriesInfo}
             confidence: result.confidence,
             keywords: result.keywords || [],
             content: result.content || '',
-            ratio: result.ratio || 0,
-            style: result.style || 'friendly'
+            ratio: result.ratio || "50",
+            style: result.style || "親切"
         };
     } catch (error) {
         console.error('Error processing message with GPT:', error);
@@ -299,7 +299,7 @@ export async function handleTestMessage(req, res) {
                 confidence: 0.8,
                 keywords: [],
                 content: response.data.choices[0].message.content,
-                ratio: 50,
+                ratio: "50",
                 style: 'friendly'
             };
 

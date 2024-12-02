@@ -290,11 +290,43 @@ class UI {
 
     async saveAllRules(category) {
         try {
-            await this.saveConfig();
-            this.showAlert('success', '所有規則已保存');
+            const config = await this.configService.loadConfig();
+            const rules = [];
+            
+            // 獲取規則列表容器
+            const rulesList = document.querySelector(`#${category} .rules-list`);
+            if (!rulesList) {
+                throw new Error('找不到規則列表容器');
+            }
+
+            // 遍歷每個規則項目
+            rulesList.querySelectorAll('.rule-card').forEach(item => {
+                const keywords = item.querySelector('.rule-keywords').value.trim();
+                const response = item.querySelector('.rule-response').value.trim();
+                const ratio = parseInt(item.querySelector('.rule-ratio').value);
+                const style = item.querySelector('.rule-style').value;
+
+                // 只保存有關鍵字和回覆的規則
+                if (keywords && response) {
+                    rules.push({
+                        keywords,
+                        response,
+                        ratio,
+                        style
+                    });
+                }
+            });
+
+            // 更新配置
+            config.categories[category].rules = rules;
+            await this.configService.saveConfig(config);
+
+            // 顯示成功提示
+            this.showAlert('success', '規則已保存');
         } catch (error) {
             console.error('保存規則失敗:', error);
-            this.showAlert('error', '保存失敗: ' + error.message);
+            this.showAlert('error', '保存規則失敗');
+            throw error;
         }
     }
 

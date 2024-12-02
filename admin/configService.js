@@ -197,17 +197,17 @@ class ConfigService {
                             <td><textarea class="form-control rule-response" rows="2">${rule.response || ''}</textarea></td>
                             <td>
                                 <select class="form-control rule-ratio">
-                                    <option value="0" ${rule.ratio === 0 ? 'selected' : ''}>0%</option>
-                                    <option value="50" ${rule.ratio === 50 ? 'selected' : ''}>50%</option>
-                                    <option value="100" ${rule.ratio === 100 ? 'selected' : ''}>100%</option>
+                                    <option value="0" ${rule.ratio === "0" ? 'selected' : ''}>0%</option>
+                                    <option value="50" ${rule.ratio === "50" ? 'selected' : ''}>50%</option>
+                                    <option value="100" ${rule.ratio === "100" ? 'selected' : ''}>100%</option>
                                 </select>
                             </td>
                             <td>
                                 <select class="form-control rule-style">
-                                    <option value="professional" ${rule.style === 'professional' ? 'selected' : ''}>專業</option>
-                                    <option value="friendly" ${rule.style === 'friendly' ? 'selected' : ''}>親切</option>
-                                    <option value="cute" ${rule.style === 'cute' ? 'selected' : ''}>少女</option>
-                                    <option value="humorous" ${rule.style === 'humorous' ? 'selected' : ''}>幽默</option>
+                                    <option value="專業" ${rule.style === '專業' ? 'selected' : ''}>專業</option>
+                                    <option value="親切" ${rule.style === '親切' ? 'selected' : ''}>親切</option>
+                                    <option value="少女" ${rule.style === '少女' ? 'selected' : ''}>少女</option>
+                                    <option value="幽默" ${rule.style === '幽默' ? 'selected' : ''}>幽默</option>
                                 </select>
                             </td>
                             <td>
@@ -239,10 +239,10 @@ class ConfigService {
                                 </td>
                                 <td>
                                     <select class="form-control rule-style">
-                                        <option value="professional">專業</option>
-                                        <option value="friendly" selected>親切</option>
-                                        <option value="cute">少女</option>
-                                        <option value="humorous">幽默</option>
+                                        <option value="專業">專業</option>
+                                        <option value="親切" selected>親切</option>
+                                        <option value="少女">少女</option>
+                                        <option value="幽默">幽默</option>
                                     </select>
                                 </td>
                                 <td>
@@ -268,10 +268,10 @@ class ConfigService {
                         button.parentNode.replaceChild(newButton, button);
                         
                         newButton.addEventListener('click', async () => {
-                            const row = newButton.closest('.rule-item');
-                            const index = parseInt(row.getAttribute('data-index'));
+                            const ruleItem = newButton.closest('.rule-item');
+                            const index = parseInt(ruleItem.getAttribute('data-index'));
                             if (await this.deleteRule(category, index)) {
-                                row.remove();
+                                ruleItem.remove();
                             }
                         });
                     });

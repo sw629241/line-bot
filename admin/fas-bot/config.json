@@ -6,9 +6,9 @@
       "rules": [
         {
           "keywords": "at5 和 at5s 比較",
-          "ratio": "50",
+          "ratio": "100",
           "response": "主要差異是電氣規格，at5 目前有二個系列 P系列 S系列，S系列就是基於P系列的閹割版本，價格一半，效能一半，你可以這樣理解。",
-          "style": "可愛"
+          "style": "親切"
         },
         {
           "keywords": "威爾康 和 尼特利 比較",
@@ -18,9 +18,9 @@
         },
         {
           "keywords": "at5s 新功能 介紹",
-          "ratio": "50",
+          "ratio": "100",
           "response": "多了語音控制及更多的預設光譜變化。",
-          "style": "幽默"
+          "style": "親切"
         }
       ]
     },
@@ -48,21 +48,21 @@
       "rules": [
         {
           "keywords": "運送 配送",
-          "ratio": "50",
+          "ratio": "100",
           "response": "目前我們配合的是黑貓，全台幾乎都是隔天到貨，離島以及天災等不可抗拒因素外。",
           "style": "專業"
         },
         {
           "keywords": "運費",
-          "ratio": "50",
+          "ratio": "100",
           "response": "目前我們配合的是黑貓，成本比較高，但運輸品質跟貨物比較有保障，賣場吸收掉了部分運費，一次購買都只收90.。",
           "style": "親切"
         },
         {
           "keywords": "免運",
-          "ratio": "50",
+          "ratio": "100",
           "response": "抱歉，我們目前不提供免運。",
-          "style": "可愛"
+          "style": "親切"
         }
       ]
     },
@@ -74,13 +74,13 @@
           "keywords": "折扣",
           "ratio": "100",
           "response": "親愛的，真的很抱歉呢～我們的商品已經是精挑細選，保證品質超棒的💦🐠 而且價格也真的很親民了🥹💖 希望能用最好的產品，～期待你的支持喔❤️~",
-          "style": "可愛"
+          "style": "親切"
         },
         {
           "keywords": "活動",
           "ratio": "100",
           "response": "雙11大優惠到啦～🎉🎁 現在全館免運費，讓你輕鬆把心愛的水族用品帶回家！🐟💧 無論是魚魚的必需品還是裝飾的小驚喜，現在下單最划算～快來逛逛，把好康搶回家吧！😍🎊",
-          "style": "可愛"
+          "style": "親切"
         }
       ]
     },
@@ -90,13 +90,13 @@
       "rules": [
         {
           "keywords": "燈具設定：尼特利(尼燈)",
-          "ratio": "50",
+          "ratio": "100",
           "response": "請參閱 https://www.bilibili.com/video/BV1JV4y1G7jJ/?spm_id_from=333.337.search-card.all.click",
           "style": "專業"
         },
         {
           "keywords": "燈具設定：威爾康(威燈)",
-          "ratio": "50",
+          "ratio": "100",
           "response": "請參閱 https://youtu.be/K8SlESCYH3M?si=IH6_u1gqr8CXFULM",
           "style": "專業"
         },
@@ -114,7 +114,7 @@
         },
         {
           "keywords": "故障維修",
-          "ratio": "0",
+          "ratio": "100",
           "response": "已通知技術老編進行回覆，請稍等。",
           "style": "專業"
         }
@@ -127,8 +127,8 @@
         {
           "keywords": "1111",
           "response": "22222",
-          "ratio": 50,
-          "style": "default",
+          "ratio": "100",
+          "style": "親切",
           "enabled": true
         }
       ]
