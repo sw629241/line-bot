@@ -175,22 +175,21 @@ class UI {
                         <textarea class="form-control rule-response" rows="3">${rule.response || ''}</textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">比重 (0-100)</label>
-                        <input type="number" class="form-control rule-ratio" value="${rule.ratio || 50}" min="0" max="100" />
+                        <label class="form-label">動態生成比例</label>
+                        <select class="form-control rule-ratio">
+                            <option value="0" ${rule.ratio === 0 || rule.ratio === "0" ? 'selected' : ''}>0%</option>
+                            <option value="50" ${rule.ratio === 50 || rule.ratio === "50" ? 'selected' : ''}>50%</option>
+                            <option value="100" ${rule.ratio === 100 || rule.ratio === "100" ? 'selected' : ''}>100%</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">風格</label>
                         <select class="form-control rule-style">
-                            <option value="default" ${rule.style === 'default' ? 'selected' : ''}>預設</option>
-                            <option value="formal" ${rule.style === 'formal' ? 'selected' : ''}>正式</option>
-                            <option value="casual" ${rule.style === 'casual' ? 'selected' : ''}>輕鬆</option>
+                            <option value="專業" ${rule.style === '專業' ? 'selected' : ''}>專業</option>
+                            <option value="親切" ${rule.style === '親切' ? 'selected' : ''}>親切</option>
+                            <option value="少女" ${rule.style === '少女' ? 'selected' : ''}>少女</option>
+                            <option value="幽默" ${rule.style === '幽默' ? 'selected' : ''}>幽默</option>
                         </select>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input rule-enabled" ${rule.enabled ? 'checked' : ''} />
-                            <label class="form-check-label">啟用</label>
-                        </div>
                     </div>
                     <button class="btn btn-danger delete-rule">刪除</button>
                 </div>
@@ -303,7 +302,7 @@ class UI {
             rulesList.querySelectorAll('.rule-card').forEach(item => {
                 const keywords = item.querySelector('.rule-keywords').value.trim();
                 const response = item.querySelector('.rule-response').value.trim();
-                const ratio = parseInt(item.querySelector('.rule-ratio').value);
+                const ratio = item.querySelector('.rule-ratio').value;
                 const style = item.querySelector('.rule-style').value;
 
                 // 只保存有關鍵字和回覆的規則
@@ -311,7 +310,7 @@ class UI {
                     rules.push({
                         keywords,
                         response,
-                        ratio,
+                        ratio: Number(ratio),
                         style
                     });
                 }
