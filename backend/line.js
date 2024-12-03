@@ -53,59 +53,77 @@ async function handleEvent(event, botType, client) {
             case 'join':
                 await handleJoinEvent(event, botType, client);
                 break;
+            default:
+                logger.info(`Unhandled event type: ${event.type}`);
         }
     } catch (error) {
         logger.error('Error handling event:', error);
+        throw error;
     }
 }
 
 // 處理消息事件
 async function handleMessageEvent(event, botType, client) {
     try {
-        const response = await processMessageWithGPT(event.message.text, botType);
+        const userMessage = event.message.text;
+        const response = await processMessageWithGPT(userMessage, botType);
+        
         await client.replyMessage(event.replyToken, {
             type: 'text',
             text: response
         });
+        
+        logger.info('Message processed and replied successfully');
     } catch (error) {
         logger.error('Error handling message event:', error);
+        throw error;
     }
 }
 
 // 處理追蹤事件
 async function handleFollowEvent(event, botType, client) {
     try {
-        const config = loadConfig();
-        const welcomeMessage = config.welcomeMessages[botType] || '感謝您的追蹤！';
+        const welcomeMessage = '感謝您加入我們！我是您的 AI 助手，很高興為您服務。';
+        
         await client.replyMessage(event.replyToken, {
             type: 'text',
             text: welcomeMessage
         });
+        
+        logger.info('Follow event handled successfully');
     } catch (error) {
         logger.error('Error handling follow event:', error);
+        throw error;
     }
 }
 
 // 處理加入群組事件
 async function handleJoinEvent(event, botType, client) {
     try {
-        const config = loadConfig();
-        const welcomeMessage = config.groupWelcomeMessages[botType] || '感謝邀請我加入群組！';
+        const welcomeMessage = '大家好！我是您的 AI 助手，很高興加入這個群組。';
+        
         await client.replyMessage(event.replyToken, {
             type: 'text',
             text: welcomeMessage
         });
+        
+        logger.info('Join event handled successfully');
     } catch (error) {
         logger.error('Error handling join event:', error);
+        throw error;
     }
 }
 
 // 記錄事件
 async function logEvent(botType, event) {
-    logger.info('Event received:', {
-        botType,
-        eventType: event.type,
-        timestamp: event.timestamp,
-        source: event.source
-    });
+    try {
+        logger.info('Event received:', {
+            botType,
+            eventType: event.type,
+            timestamp: event.timestamp,
+            source: event.source
+        });
+    } catch (error) {
+        logger.error('Error logging event:', error);
+    }
 }

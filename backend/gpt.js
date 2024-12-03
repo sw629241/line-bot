@@ -1,58 +1,72 @@
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 import { loadConfig } from './config.js';
 import { logger } from './utils.js';
 
 const config = loadConfig();
-const configuration = new Configuration({
-    apiKey: config.openai.apiKey
+const apiKey = process.env.OPENAI_API_KEY || config?.openai?.apiKey;
+
+if (!apiKey) {
+    logger.error('OpenAI API key is not configured. Please set OPENAI_API_KEY environment variable or configure it in config.js');
+    process.exit(1);
+}
+
+const openai = new OpenAI({
+    apiKey: apiKey
 });
-const openai = new OpenAIApi(configuration);
+
+// 延遲函數
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// 重試配置
+const RETRY_DELAYS = [1000, 2000, 5000]; // 重試間隔（毫秒）
+const MAX_RETRIES = 3;
 
 export async function processMessageWithGPT(message, botType) {
-    try {
-        const config = await loadConfig();
-        if (!config || !config.categories) {
-            throw new Error('配置無效: 缺少 categories 屬性');
-        }
+    let lastError;
+    
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+            const completion = await openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: 'system',
+                        content: `你是一個 LINE Bot 助手，負責回答用戶的問題。請用友善的語氣回答。`
+                    },
+                    {
+                        role: 'user',
+                        content: message
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 150
+            });
 
-        // 檢查必要的類別是否存在
-        const requiredCategories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
-        const missingCategories = requiredCategories.filter(cat => !config.categories[cat]);
-        
-        if (missingCategories.length > 0) {
-            throw new Error(`配置無效: 缺少必要類別 ${missingCategories.join(', ')}`);
-        }
-
-        // 檢查每個類別的必要屬性
-        for (const category in config.categories) {
-            const cat = config.categories[category];
-            if (!cat.systemPrompt || !cat.examples || !Array.isArray(cat.rules)) {
-                throw new Error(`配置無效: ${category} 類別缺少必要屬性 (systemPrompt, examples, rules)`);
+            return completion.choices[0].message.content;
+            
+        } catch (error) {
+            lastError = error;
+            
+            // 檢查是否是速率限制錯誤
+            if (error.message?.includes('rate limit exceeded')) {
+                logger.warn(`Rate limit exceeded, attempt ${attempt + 1}/${MAX_RETRIES}`);
+                
+                if (attempt < MAX_RETRIES - 1) {
+                    // 等待指定時間後重試
+                    await delay(RETRY_DELAYS[attempt]);
+                    continue;
+                }
+            } else {
+                // 如果不是速率限制錯誤，直接拋出
+                break;
             }
         }
-
-        // 準備 GPT 請求
-        const messages = [
-            {
-                role: 'system',
-                content: `你是一個智能助手，負責分析用戶訊息並提供適當的回應。請根據配置的規則和範例進行回應。`
-            },
-            {
-                role: 'user',
-                content: message
-            }
-        ];
-
-        const response = await openai.createChatCompletion({
-            model: config.openai.model || 'gpt-3.5-turbo',
-            messages: messages,
-            temperature: config.openai.temperature || 0.7,
-            max_tokens: config.openai.maxTokens || 150
-        });
-
-        return response.data.choices[0].message.content;
-    } catch (error) {
-        logger.error('Error processing message with GPT:', error);
-        throw error;
     }
+
+    // 如果所有重試都失敗了
+    logger.error('Error processing message with GPT:', lastError);
+    if (lastError.message?.includes('rate limit exceeded')) {
+        return '抱歉，系統目前較忙碌，請稍後再試。';
+    }
+    throw lastError;
 }

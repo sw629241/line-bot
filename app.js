@@ -1,94 +1,92 @@
 import express from 'express';
-import { middleware } from '@line/bot-sdk';
-import { Client } from '@line/bot-sdk';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import bodyParser from 'body-parser';
 import cors from 'cors';
-import { 
-    lineConfig, 
-    serverConfig, 
-    ensureDirectories,
-    loggerConfig
-} from './backend/config.js';
-import { handleMessageEvent, processMessageWithGPT, handleTestMessage, setupRoutes } from './backend/server.js';
+import { loadConfig } from './backend/config.js';
+import { handleWebhook, handleTestMessage } from './backend/line.js';
+import { logger } from './backend/utils.js';
+import { existsSync } from 'fs';
 
-// 確保必要目錄存在
-await ensureDirectories();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const config = loadConfig();
 
 const app = express();
-const { port, cors: corsConfig, static: staticConfig } = serverConfig;
 
-// 啟用 CORS
-if (corsConfig.enabled) {
-    app.use(cors());
-}
+// 設置中間件
+app.use(cors(config.cors));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// 啟用 JSON 解析中間件
-app.use(express.json({
-    verify: (req, res, buf) => {
-        req.rawBody = buf;
-    }
-}));
+// 設置前端目錄的絕對路徑
+const frontendPath = path.join(__dirname, 'frontend');
+console.log('Frontend directory path:', frontendPath);
+console.log('__dirname:', __dirname);
 
-// 創建 Line clients
-const primaryClient = new Client(lineConfig.primary);
-const secondaryClient = new Client(lineConfig.secondary);
+// 檢查 index.html 是否存在
+const indexPath = path.join(frontendPath, 'index.html');
+console.log('Checking if index.html exists at:', indexPath);
+console.log('index.html exists:', existsSync(indexPath));
 
-// 配置靜態檔案服務
-app.use(staticConfig.route, express.static('frontend', staticConfig.options));
-
-// 設置 webhook 路由
-app.post('/webhook1', middleware(lineConfig.primary), async (req, res) => {
-    try {
-        const events = req.body.events;
-        
-        if (!Array.isArray(events)) {
-            return res.status(400).json({ error: 'Invalid request body' });
-        }
-
-        const results = await Promise.all(
-            events.map(event => handleMessageEvent(event, 'primary', primaryClient))
-        );
-
-        res.json({ results });
-    } catch (error) {
-        loggerConfig.error('Error handling primary webhook:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+// 請求日誌中間件
+app.use((req, res, next) => {
+    logger.info('Incoming request:', {
+        method: req.method,
+        url: req.url,
+        path: req.path
+    });
+    console.log('Incoming request:', req.method, req.path);
+    console.log('Looking for static file in:', frontendPath);
+    next();
 });
 
-app.post('/webhook2', middleware(lineConfig.secondary), async (req, res) => {
-    try {
-        const events = req.body.events;
-        
-        if (!Array.isArray(events)) {
-            return res.status(400).json({ error: 'Invalid request body' });
-        }
+// 所有請求都先嘗試匹配靜態文件
+app.use(express.static(frontendPath));
 
-        const results = await Promise.all(
-            events.map(event => handleMessageEvent(event, 'secondary', secondaryClient))
-        );
-
-        res.json({ results });
-    } catch (error) {
-        loggerConfig.error('Error handling secondary webhook:', error);
-        res.status(500).json({ error: 'Internal server error' });
+// LINE Bot Webhook 端點
+app.post('/webhook/:botType', (req, res) => {
+    const botType = req.params.botType;
+    const client = config.lineClients[botType];
+    
+    if (!client) {
+        logger.error(`Invalid bot type: ${botType}`);
+        return res.status(400).json({ error: 'Invalid bot type' });
     }
+    
+    handleWebhook(req, res, botType, client);
 });
 
-// 設置管理介面路由
-setupRoutes(app);
+// 測試消息端點
+app.post('/test-message', handleTestMessage);
 
-// 錯誤處理
+// 所有其他請求都返回 index.html
+app.get('*', (req, res) => {
+    console.log('Fallback route for:', req.path);
+    console.log('Sending file:', indexPath);
+    res.sendFile(indexPath, (err) => {
+        if (err) {
+            console.error('Error sending file:', err);
+            res.status(500).send('Error sending file');
+        } else {
+            console.log('File sent successfully');
+        }
+    });
+});
+
+// 錯誤處理中間件
 app.use((err, req, res, next) => {
-    loggerConfig.error('Error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    logger.error('Error:', err);
+    console.error('Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
 });
 
 // 啟動服務器
-app.listen(port, () => {
-    loggerConfig.info(`Server is running on port ${port}`);
-});
-
-// 處理未捕獲的異常
-process.on('uncaughtException', (error) => {
-    loggerConfig.error('Uncaught Exception:', error);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    logger.info(`Server is running at http://0.0.0.0:${PORT}`);
+    console.log(`Server is running at http://0.0.0.0:${PORT}`);
+    logger.info(`Serving static files from: ${frontendPath}`);
+    console.log(`Serving static files from: ${frontendPath}`);
 });

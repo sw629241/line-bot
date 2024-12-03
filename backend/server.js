@@ -1,19 +1,12 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import { Configuration, OpenAIApi } from 'openai';
 import { loadConfig } from './config.js';
 import { processMessageWithGPT } from './gpt.js';
 import { handleWebhook, handleTestMessage } from './line.js';
 import { logger } from './utils.js';
 
 const config = loadConfig();
-
-// Initialize OpenAI
-const configuration = new Configuration({
-    apiKey: config.openai.apiKey
-});
-const openai = new OpenAIApi(configuration);
 
 // Initialize Express app
 const app = express();
@@ -63,6 +56,12 @@ process.on('uncaughtException', (error) => {
 
 process.on('unhandledRejection', (reason, promise) => {
     logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// 啟動服務器
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+    logger.info(`Backend server is running at http://0.0.0.0:${PORT}`);
 });
 
 export default app;
