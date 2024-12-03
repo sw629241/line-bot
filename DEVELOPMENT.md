@@ -22,36 +22,36 @@ OPENAI_API_KEY=OpenAI API 密鑰
 ### 專案結構
 ```
 linebot/
-├── admin/                    # 管理介面
-│   ├── components/          # UI 組件
-│   │   ├── header.html     # 頁面頭部
-│   │   ├── bot-selector.html    # Bot 選擇器
-│   │   ├── category-tabs.html   # 類別標籤
-│   │   ├── gpt-settings.html    # GPT 設定區塊
-│   │   ├── reply-rules.html     # 回覆規則區塊
-│   │   └── test-area.html       # 測試區域
-│   ├── sxi-bot/            # SXI Bot 配置
-│   │   └── config.json     # Bot 設定檔
-│   ├── fas-bot/            # FAS Bot 配置
-│   │   └── config.json     # Bot 設定檔
-│   ├── admin.html          # 管理介面主頁面
-│   ├── admin.js            # 管理介面主要邏輯
-│   ├── styles.css          # 管理介面樣式
-│   ├── messageService.js   # 訊息處理服務
-│   ├── configService.js    # 配置管理服務
-│   ├── apiService.js       # API 服務
+├── backend/                # 後端程式
+│   ├── config.js          # 配置和環境變數
+│   ├── server.js          # Express 服務器設定
+│   ├── line.js            # LINE Bot 相關功能
+│   ├── gpt.js             # GPT 相關功能
+│   ├── utils.js           # 通用工具函數
+│   ├── sxi-bot-config.json # SXI Bot 配置文件
+│   └── fas-bot-config.json # FAS Bot 配置文件
+│
+├── frontend/              # 前端程式
+│   ├── admin.html         # 管理介面主頁面
+│   ├── admin.js           # 管理介面主要邏輯
 │   ├── ui.js              # UI 互動邏輯
-│   ├── server.js          # 後端服務器
-│   └── .env               # 管理介面環境變數
-├── logs/                   # 日誌目錄
-│   └── primary_webhook_events.log  # Webhook 事件日誌
-├── app.js                 # 主應用程式入口
-├── index.html            # 主頁面
-├── .env                  # 環境變數配置
-├── docker-compose.yml    # Docker 配置
-├── Dockerfile           # Docker 建構檔
-├── package.json         # 專案依賴配置
-└── package-lock.json    # 依賴版本鎖定
+│   ├── api.js             # API 調用邏輯
+│   ├── styles.css         # 樣式檔案
+│   ├── bot-selector.html  # Bot 選擇器模板
+│   ├── category-tabs.html # 類別標籤模板
+│   ├── gpt-settings.html  # GPT 設定模板
+│   ├── reply-rules.html   # 回覆規則模板
+│   └── test-area.html     # 測試區域模板
+│
+├── logs/                  # 日誌目錄
+│   ├── info-YYYY-MM-DD.log    # 一般信息日誌
+│   ├── error-YYYY-MM-DD.log   # 錯誤日誌
+│   ├── debug-YYYY-MM-DD.log   # 調試日誌
+│   ├── request-YYYY-MM-DD.log # 請求日誌
+│   └── response-YYYY-MM-DD.log # 響應日誌
+│
+├── app.js                # 主應用程式入口
+└── package.json          # 專案配置
 ```
 
 ### API 端點配置
@@ -63,9 +63,9 @@ linebot/
 
 ## 3. 編碼規範
 ### 命名規則
-- 檔案命名：小寫，使用連字符（例：config-service.js）
-- 類別名稱：使用複數形式（products, prices）
+- 檔案命名：小寫，使用連字符（例：bot-selector.html）
 - 變數命名：駝峰式
+- 類別配置：使用複數形式（products, prices）
 
 ### 配置規範
 #### 必要類別
@@ -99,8 +99,6 @@ linebot/
 ### 回應風格說明
 - **幽默**: 使用輕鬆、友善的語氣，適合一般產品查詢
 - **專業**: 使用正式、技術性的語氣，適合技術性問題
-- **溫和**: 使用親切、耐心的語氣，適合客訴處理
-- **簡潔**: 使用簡短、直接的語氣，適合價格和運送查詢
 
 ## 4. 部署說明
 ### Docker 部署
