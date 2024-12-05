@@ -3,30 +3,38 @@
 ## 專案結構
 ```
 linebot/
-├── index.html           # 首頁（根目錄靜態頁面）
-├── app.js              # 主程式入口
-├── package.json        # 專案配置
+├── frontend/                # 前端程式碼
+│   ├── index.html          # 靜態首頁
+│   ├── admin.html          # 管理介面
+│   ├── admin.js            # 管理介面邏輯
+│   ├── api.js              # API 調用
+│   ├── messageService.js   # 訊息處理服務
+│   ├── ui.js              # UI 相關功能
+│   ├── styles.css         # 樣式表
+│   ├── bot-selector.html  # Bot 選擇器組件
+│   ├── category-tabs.html # 分類標籤組件
+│   ├── gpt-settings.html  # GPT 設定組件
+│   ├── reply-rules.html   # 回覆規則組件
+│   └── test-area.html     # 測試區域組件
 │
-├── frontend/           # 前端代碼
-│   ├── admin.html     # 管理介面主頁面
-│   ├── admin.js       # 管理介面初始化
-│   ├── ui.js          # UI 相關功能
-│   ├── api.js         # API 調用服務
-│   ├── messageService.js # 訊息處理服務
-│   └── styles.css     # 樣式定義
+├── backend/                # 後端程式碼
+│   ├── config.js          # 配置管理
+│   ├── gpt.js            # GPT 服務整合
+│   ├── line.js           # LINE Bot 核心功能
+│   ├── server.js         # 伺服器設定
+│   ├── utils.js          # 工具函數
+│   ├── webhook1.js       # Bot 1 的 webhook 處理
+│   ├── webhook2.js       # Bot 2 的 webhook 處理
+│   ├── fas-bot-config.json # FAS Bot 配置
+│   └── sxi-bot-config.json # SXI Bot 配置
 │
-└── backend/           # 後端代碼
-    ├── webhook1.js    # LINE Bot 1 的 webhook 處理
-    ├── webhook2.js    # LINE Bot 2 的 webhook 處理
-    ├── config.js      # 配置管理
-    ├── line.js        # LINE API 整合
-    ├── gpt.js         # GPT 服務整合
-    └── utils.js       # 工具函數
-```
+├── .env                   # 環境變數
+├── app.js                # 主程式入口
+└── package.json          # 專案配置
 
 ## 路由結構
-- `/` -> index.html（靜態首頁）
-- `/admin` -> 管理介面（frontend/admin.html）
+- `/frontend` -> index.html（靜態首頁）
+- `/frontend` -> 管理介面（frontend/admin.html）
 - `/admin/api/webhook1` -> LINE Bot 1 的 webhook
 - `/admin/api/webhook2` -> LINE Bot 2 的 webhook
 
@@ -102,6 +110,7 @@ linebot/
 2. 及時處理 TODO 和 FIXME 標記
 3. 確保錯誤提示明確有用
 4. 保持文件及時更新
+5. 不要留下垃圾資料夾及文件
 
 ## 待優化項目
 1. 配置加載機制優化

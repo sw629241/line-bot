@@ -1,0 +1,14 @@
+version: '3'
+services:
+  npm:
+    container_name: nginx-proxy-manager    # 設定容器名稱
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'    # HTTP
+      - '443:443'  # HTTPS
+      - '81:81'    # NPM 管理介面
+    volumes:
+      - ./data/npm:/data
+      - ./data/letsencrypt:/etc/letsencrypt
+      - ./logs/npm:/data/logs

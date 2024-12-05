@@ -27,8 +27,14 @@ export async function ensureDirectories() {
 
 // LINE Bot 配置
 const lineConfig = {
-    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
-    channelSecret: process.env.LINE_CHANNEL_SECRET
+    bot1: {
+        channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN_1,
+        channelSecret: process.env.LINE_CHANNEL_SECRET_1
+    },
+    bot2: {
+        channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN_2,
+        channelSecret: process.env.LINE_CHANNEL_SECRET_2
+    }
 };
 
 // OpenAI 配置
