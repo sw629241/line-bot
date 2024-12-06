@@ -8,11 +8,77 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+// 日誌中間件
+router.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+    
+    // 捕獲響應
+    const originalSend = res.send;
+    res.send = function(body) {
+        console.log(`[${new Date().toISOString()}] Response:`, body);
+        return originalSend.call(this, body);
+    };
+    
+    next();
+});
+
 // 配置文件路徑
 const CONFIG_PATH = {
     'sxi-bot': path.join(__dirname, 'sxi-bot-config.json'),
     'fas-bot': path.join(__dirname, 'fas-bot-config.json')
 };
+
+// 速率限制配置
+const RATE_LIMIT = {
+    windowMs: 60 * 1000, // 1 分鐘
+    maxRequests: 10 // 每個 IP 最多 10 個請求
+};
+
+// 存儲請求記錄
+const requestLog = new Map();
+
+/**
+ * 速率限制中間件
+ */
+function rateLimiter(req, res, next) {
+    const ip = req.ip;
+    const now = Date.now();
+    
+    // 獲取該 IP 的請求記錄
+    let requests = requestLog.get(ip) || [];
+    
+    // 清理過期的請求記錄
+    requests = requests.filter(time => now - time < RATE_LIMIT.windowMs);
+    
+    // 檢查請求數量是否超過限制
+    if (requests.length >= RATE_LIMIT.maxRequests) {
+        return res.status(429).json({
+            error: '請求過於頻繁，請稍後再試',
+            retryAfter: Math.ceil((RATE_LIMIT.windowMs - (now - requests[0])) / 1000)
+        });
+    }
+    
+    // 添加新的請求記錄
+    requests.push(now);
+    requestLog.set(ip, requests);
+    
+    next();
+}
+
+// 定期清理過期的請求記錄
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, requests] of requestLog.entries()) {
+        const validRequests = requests.filter(time => now - time < RATE_LIMIT.windowMs);
+        if (validRequests.length === 0) {
+            requestLog.delete(ip);
+        } else {
+            requestLog.set(ip, validRequests);
+        }
+    }
+}, RATE_LIMIT.windowMs);
 
 /**
  * 讀取配置文件
@@ -67,7 +133,7 @@ function validateConfig(config) {
  * 獲取機器人配置
  * GET /api/bots/:botId/config
  */
-router.get('/bots/:botId/config', async (req, res) => {
+router.get('/bots/:botId/config', rateLimiter, async (req, res) => {
     try {
         const { botId } = req.params;
         const config = await readConfig(botId);
@@ -81,7 +147,7 @@ router.get('/bots/:botId/config', async (req, res) => {
  * 保存機器人配置
  * POST /api/bots/:botId/config
  */
-router.post('/bots/:botId/config', async (req, res) => {
+router.post('/bots/:botId/config', rateLimiter, async (req, res) => {
     try {
         const { botId } = req.params;
         const config = req.body;
@@ -101,25 +167,71 @@ router.post('/bots/:botId/config', async (req, res) => {
  * 測試訊息
  * POST /api/bots/:botId/test
  */
-router.post('/bots/:botId/test', async (req, res) => {
+router.post('/bots/:botId/test', rateLimiter, async (req, res) => {
     try {
         const { botId } = req.params;
-        const { message, category } = req.body;
+        const { message } = req.body;
+
+        if (!message) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
+
+        console.log(`[${botId}] 開始測試訊息:`, message);
 
         // 讀取機器人配置
         const config = await readConfig(botId);
+        console.log(`[${botId}] 載入配置成功:`, JSON.stringify(config, null, 2));
 
-        // 這裡應該調用 GPT 服務來處理訊息
-        // 暫時返回模擬響應
-        const response = {
-            message: `Bot ${botId} received message: ${message} for category: ${category}`,
-            category,
-            timestamp: new Date().toISOString()
-        };
+        // 調用 GPT 服務
+        const { analyzeMessage } = await import('./gpt.js');
+        console.log(`[${botId}] 開始調用 GPT 服務...`);
+        
+        const result = await analyzeMessage(message, config.categories);
+        console.log(`[${botId}] GPT 分析結果:`, JSON.stringify(result, null, 2));
 
-        res.json(response);
+        // 驗證結果格式
+        if (!result || typeof result !== 'object') {
+            throw new Error('Invalid GPT response format');
+        }
+
+        // 確保所有必要字段都存在
+        const requiredFields = ['category', 'intent', 'confidence', 'keywords', 'isSensitive', 'generatedResponse'];
+        const missingFields = requiredFields.filter(field => !(field in result));
+        
+        if (missingFields.length > 0) {
+            console.warn(`[${botId}] GPT 響應缺少字段:`, missingFields);
+            // 補充缺失的字段
+            missingFields.forEach(field => {
+                switch (field) {
+                    case 'category':
+                        result.category = 'chat';
+                        break;
+                    case 'intent':
+                        result.intent = '';
+                        break;
+                    case 'confidence':
+                        result.confidence = 0;
+                        break;
+                    case 'keywords':
+                        result.keywords = [];
+                        break;
+                    case 'isSensitive':
+                        result.isSensitive = false;
+                        break;
+                    case 'generatedResponse':
+                        result.generatedResponse = '';
+                        break;
+                }
+            });
+        }
+
+        res.json(result);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('測試訊息錯誤:', error);
+        res.status(500).json({ 
+            error: error.message,
+            details: error.stack
+        });
     }
 });
 

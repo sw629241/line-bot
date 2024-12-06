@@ -161,12 +161,12 @@ linebot/
 
 ### 配置規範
 #### 必要類別
-- products: 產品相關查詢
-- prices: 價格相關查詢
-- shipping: 運送相關查詢
+- products: 產品資訊
+- prices: 產品價格
+- shipping: 活動優惠
 - promotions: 促銷活動查詢
 - chat: 一般對話
-- sensitive: 敏感詞處理
+- sensitive: 敏感詞
 
 #### 類別配置結構
 ```json

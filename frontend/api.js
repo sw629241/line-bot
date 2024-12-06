@@ -72,26 +72,74 @@ class ApiService {
     /**
      * 測試訊息
      */
-    async testMessage(botId, message, category) {
+    async testMessage(botId, message) {
         try {
+            console.log('開始測試訊息:', { botId, message });
+            
             const response = await fetch(`${this.baseUrl}/bots/${botId}/test`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message, category })
+                body: JSON.stringify({ message })
             });
+            
+            console.log('API 響應狀態:', response.status);
+            
             if (!response.ok) {
                 const error = await response.text();
+                console.error('測試訊息失敗:', error);
                 throw new Error(`Failed to test message: ${error}`);
             }
-            return await response.json();
+            
+            const result = await response.json();
+            console.log('測試結果:', result);
+            return result;
         } catch (error) {
-            console.error('Error testing message:', error);
+            console.error('測試訊息出錯:', error);
             throw error;
         }
     }
 }
 
 // 導出單例
-export const api = new ApiService();
+export const api = {
+    async getConfig(botId) {
+        const response = await fetch(`/api/bots/${botId}/config`);
+        if (!response.ok) {
+            throw new Error(`Failed to get config: ${response.statusText}`);
+        }
+        return response.json();
+    },
+
+    async saveConfig(botId, config) {
+        const response = await fetch(`/api/bots/${botId}/config`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(config)
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to save config: ${response.statusText}`);
+        }
+        return response.json();
+    },
+
+    async testMessage(botId, message) {
+        console.log('Sending test message:', { botId, message });
+        const response = await fetch(`/api/bots/${botId}/test`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+        });
+        if (!response.ok) {
+            throw new Error(`Test failed: ${response.statusText}`);
+        }
+        const result = await response.json();
+        console.log('Test result:', result);
+        return result;
+    }
+};

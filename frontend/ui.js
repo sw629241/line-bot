@@ -5,6 +5,20 @@ export class UI {
         this.currentBot = 'sxi-bot';
         this.config = null;
         this.initialized = false;
+        
+        // 添加類別中英文對照表
+        this.categoryMap = {
+            'products': '產品資訊',
+            'prices': '產品價格',
+            'shipping': '運輸費用',
+            'promotions': '活動優惠',
+            'chat': '一般對話',
+            'sensitive': '敏感詞'
+        };
+        
+        // 歷史記錄相關
+        this.HISTORY_KEY = 'test_history';
+        this.MAX_HISTORY_ITEMS = 50;
     }
 
     async init() {
@@ -220,162 +234,90 @@ export class UI {
     }
 
     initializeEventListeners() {
+        console.log('初始化事件監聽器...');
+
         // Bot 選擇器事件
         const botSelector = document.getElementById('botSelector');
         if (botSelector) {
-            botSelector.addEventListener('change', async (e) => {
-                try {
-                    const newBot = e.target.value;
-                    this.currentBot = newBot;
-                    await this.loadConfig();
-                    this.showAlert('success', `已切換到 ${newBot}`);
-                } catch (error) {
-                    console.error('切換 bot 失敗:', error);
-                    this.showAlert('error', '切換 bot 失敗: ' + error.message);
-                }
+            botSelector.addEventListener('change', async (event) => {
+                this.currentBot = event.target.value;
+                await this.loadConfig();
             });
         }
-
-        // GPT 設定儲存按鈕事件
-        document.querySelectorAll('.save-gpt').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                try {
-                    const panel = e.target.closest('.tab-pane').id;
-                    const gptPrompt = document.querySelector(`#${panel}GptSettings .gpt-prompt`).value;
-                    const gptExamples = document.querySelector(`#${panel}GptSettings .gpt-examples`).value;
-
-                    this.ensureCategoryStructure(panel);
-
-                    // 更新配置，保持其他設定不變
-                    this.config.categories[panel] = {
-                        ...this.config.categories[panel],
-                        systemPrompt: gptPrompt || '',
-                        examples: gptExamples || '',
-                        rules: this.config.categories[panel].rules || []
-                    };
-
-                    await this.saveConfigWithErrorHandling('已儲存 GPT 設定');
-                } catch (error) {
-                    console.error('儲存 GPT 設定失敗:', error);
-                    this.showAlert('error', '儲存 GPT 設定失敗: ' + error.message);
-                }
-            });
-        });
-
-        // 敏感詞儲存按鈕事件
-        const saveSensitiveButton = document.querySelector('.save-sensitive');
-        if (saveSensitiveButton) {
-            saveSensitiveButton.addEventListener('click', async () => {
-                try {
-                    const sensitiveWords = document.querySelector('.sensitive-words').value
-                        .split('\n')
-                        .map(word => word.trim())
-                        .filter(word => word);
-
-                    this.ensureConfigStructure();
-                    this.config.sensitiveWords = sensitiveWords || [];
-
-                    await this.saveConfigWithErrorHandling('已儲存敏感詞設定');
-                } catch (error) {
-                    console.error('儲存敏感詞設定失敗:', error);
-                    this.showAlert('error', '儲存敏感詞設定失敗: ' + error.message);
-                }
-            });
-        }
-
-        // 新增規則按鈕事件
-        document.querySelectorAll('.add-rule').forEach(button => {
-            button.addEventListener('click', () => {
-                const panel = button.closest('.tab-pane').id;
-                const newRule = {
-                    keywords: '',
-                    response: '',
-                    ratio: 0,
-                    style: '專業'
-                };
-
-                // 確保該分類的規則陣列存在
-                this.ensureCategoryStructure(panel);
-                const rules = this.config.categories[panel].rules;
-                
-                // 添加新規則
-                rules.push(newRule);
-                
-                // 更新 UI
-                const rulesList = button.closest('.card').querySelector('.rule-list');
-                this.updateRulesList(rules, rulesList);
-            });
-        });
-
-        // 規則列表相關事件（刪除和儲存）
-        document.querySelectorAll('.card').forEach(container => {
-            const rulesList = container.querySelector('.rule-list');
-            if (!rulesList) return; // 如果不是規則列表的卡片，跳過
-
-            const panel = container.closest('.tab-pane').id;
-
-            // 刪除規則
-            rulesList.addEventListener('click', async (e) => {
-                if (e.target.classList.contains('delete-rule')) {
-                    const index = parseInt(e.target.dataset.index);
-                    
-                    // 添加確認對話框
-                    if (!confirm('確定要刪除這條規則嗎？')) {
-                        return;
-                    }
-
-                    try {
-                        // 更新本地配置
-                        this.config.categories[panel].rules.splice(index, 1);
-                        
-                        // 更新 UI
-                        this.updateRulesList(this.config.categories[panel].rules, rulesList);
-                        
-                        // 直接保存到服務器
-                        await this.saveConfigWithErrorHandling('已刪除規則');
-                    } catch (error) {
-                        // 重新載入配置以恢復狀態
-                        await this.loadConfig();
-                    }
-                }
-            });
-
-            // 儲存規則
-            const saveRulesButton = container.querySelector('.save-rules');
-            if (saveRulesButton) {
-                saveRulesButton.addEventListener('click', async () => {
-                    try {
-                        const rules = Array.from(rulesList.querySelectorAll('tr')).map(row => ({
-                            keywords: row.querySelector('.rule-keyword').value,
-                            response: row.querySelector('.rule-response').value,
-                            ratio: parseInt(row.querySelector('.rule-ratio').value),
-                            style: row.querySelector('.rule-style').value
-                        }));
-
-                        this.config.categories[panel].rules = rules;
-                        await this.saveConfigWithErrorHandling('已儲存規則設定');
-                    } catch (error) {
-                        console.error('儲存規則設定失敗:', error);
-                        this.showAlert('error', '儲存規則設定失敗: ' + error.message);
-                    }
-                });
-            }
-        });
 
         // 測試按鈕事件
-        document.querySelectorAll('.test-button').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                try {
-                    const panel = e.target.closest('.tab-pane').id;
-                    const message = document.querySelector(`#${panel}TestArea .test-input`).value;
-                    const response = await api.testMessage(this.currentBot, message, panel);
-                    document.querySelector(`#${panel}TestArea .test-output`).value = response.message;
-                } catch (error) {
-                    console.error('測試失敗:', error);
-                    this.showAlert('error', '測試失敗: ' + error.message);
+        const testButtons = document.querySelectorAll('.test-button');
+        testButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+                const testInput = button.closest('.input-group').querySelector('.test-input');
+                if (testInput && testInput.value.trim()) {
+                    await this.testMessage(testInput.value.trim());
                 }
             });
         });
+
+        // 測試輸入框 Enter 鍵事件
+        const testInputs = document.querySelectorAll('.test-input');
+        testInputs.forEach(input => {
+            input.addEventListener('keypress', async (event) => {
+                if (event.key === 'Enter' && input.value.trim()) {
+                    await this.testMessage(input.value.trim());
+                }
+            });
+        });
+
+        // 清除歷史按鈕事件
+        const clearHistoryButtons = document.querySelectorAll('.clear-history-button');
+        clearHistoryButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                this.clearHistory();
+            });
+        });
+
+        console.log('事件監聽器初始化完成');
+    }
+
+    async testMessage(message) {
+        try {
+            console.log('開始測試訊息:', message);
+            
+            // 顯示載入中
+            const spinner = document.getElementById('loading-spinner');
+            spinner.classList.remove('d-none');
+            
+            // 清空並隱藏結果區域
+            const resultWrapper = document.querySelector('.test-result-wrapper');
+            resultWrapper.classList.remove('show');
+            
+            // 發送測試請求
+            const result = await api.testMessage(this.currentBot, message);
+            console.log('測試結果:', result);
+            
+            // 更新結果顯示
+            document.querySelector('.test-category').textContent = this.categoryMap[result.category] || result.category;
+            document.querySelector('.test-confidence').textContent = `${Math.round(result.confidence * 100)}%`;
+            document.querySelector('.test-intent').textContent = result.intent;
+            document.querySelector('.test-keywords').innerHTML = result.keywords.map(keyword => 
+                `<span class="badge bg-secondary me-1">${keyword}</span>`
+            ).join('');
+            document.querySelector('.test-sensitive').textContent = result.isSensitive ? '是' : '否';
+            document.querySelector('.test-sensitive').className = `test-sensitive badge ${result.isSensitive ? 'bg-danger' : 'bg-success'}`;
+            document.querySelector('.test-response').textContent = result.generatedResponse;
+            
+            // 顯示結果區域
+            resultWrapper.classList.add('show');
+            
+            // 添加到歷史記錄
+            this.addToHistory(message, result);
+            
+        } catch (error) {
+            console.error('測試訊息失敗:', error);
+            this.showAlert('error', '測試失敗: ' + error.message);
+        } finally {
+            // 隱藏載入中
+            const spinner = document.getElementById('loading-spinner');
+            spinner.classList.add('d-none');
+        }
     }
 
     ensureConfigStructure() {
@@ -414,6 +356,227 @@ export class UI {
                 rules: []
             };
         }
+    }
+
+    addToHistory(message, result) {
+        try {
+            // 獲取現有歷史記錄
+            let history = JSON.parse(localStorage.getItem(this.HISTORY_KEY) || '[]');
+            
+            // 添加新記錄
+            const historyItem = {
+                message,
+                result,
+                timestamp: new Date().toISOString()
+            };
+            
+            // 將新記錄添加到開頭
+            history.unshift(historyItem);
+            
+            // 限制歷史記錄數量
+            if (history.length > this.MAX_HISTORY_ITEMS) {
+                history = history.slice(0, this.MAX_HISTORY_ITEMS);
+            }
+            
+            // 保存到 localStorage
+            localStorage.setItem(this.HISTORY_KEY, JSON.stringify(history));
+            
+            // 更新 UI
+            this.updateHistoryUI();
+            
+        } catch (error) {
+            console.error('添加歷史記錄失敗:', error);
+        }
+    }
+
+    clearHistory() {
+        try {
+            // 清除 localStorage 中的歷史記錄
+            localStorage.removeItem(this.HISTORY_KEY);
+            
+            // 更新 UI
+            this.updateHistoryUI();
+            
+        } catch (error) {
+            console.error('清除歷史記錄失敗:', error);
+        }
+    }
+
+    updateHistoryUI() {
+        try {
+            // 獲取歷史記錄
+            const history = JSON.parse(localStorage.getItem(this.HISTORY_KEY) || '[]');
+            
+            // 獲取所有歷史記錄列表容器
+            const historyLists = document.querySelectorAll('.test-history-list');
+            
+            historyLists.forEach(historyList => {
+                // 清空現有內容
+                historyList.innerHTML = '';
+                
+                // 如果沒有歷史記錄，顯示提示
+                if (history.length === 0) {
+                    historyList.innerHTML = '<div class="text-muted text-center">暫無歷史記錄</div>';
+                    return;
+                }
+                
+                // 獲取模板
+                const template = document.getElementById('history-item-template');
+                if (!template) {
+                    console.error('找不到歷史記錄模板');
+                    return;
+                }
+                
+                // 添加歷史記錄項目
+                history.forEach(item => {
+                    const clone = template.content.cloneNode(true);
+                    
+                    // 設置訊息
+                    clone.querySelector('.test-message').textContent = item.message;
+                    
+                    // 設置時間
+                    const time = new Date(item.timestamp);
+                    clone.querySelector('.test-time').textContent = 
+                        `${time.getFullYear()}/${(time.getMonth() + 1).toString().padStart(2, '0')}/${time.getDate().toString().padStart(2, '0')} ${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}:${time.getSeconds().toString().padStart(2, '0')}`;
+                    
+                    // 設置類別
+                    const category = clone.querySelector('.category');
+                    category.textContent = this.categoryMap[item.result.category] || item.result.category;
+                    
+                    // 設置信心度
+                    clone.querySelector('.confidence').textContent = 
+                        `${Math.round(item.result.confidence * 100)}%`;
+                    
+                    // 設置敏感詞標記
+                    const sensitive = clone.querySelector('.sensitive');
+                    sensitive.textContent = item.result.isSensitive ? '敏感' : '正常';
+                    sensitive.className = `sensitive badge ${item.result.isSensitive ? 'bg-danger' : 'bg-success'}`;
+                    
+                    // 設置回覆
+                    clone.querySelector('.response').textContent = item.result.generatedResponse;
+                    
+                    historyList.appendChild(clone);
+                });
+            });
+            
+        } catch (error) {
+            console.error('更新歷史記錄 UI 失敗:', error);
+        }
+    }
+
+    loadHistory() {
+        const history = localStorage.getItem(this.HISTORY_KEY);
+        return history ? JSON.parse(history) : [];
+    }
+
+    saveHistory(history) {
+        localStorage.setItem(this.HISTORY_KEY, JSON.stringify(history));
+    }
+
+    renderHistory() {
+        const history = this.loadHistory();
+        const historyList = document.querySelector('.test-history-list');
+        const template = document.getElementById('history-item-template');
+        
+        historyList.innerHTML = '';
+        
+        history.forEach(item => {
+            const historyItem = template.content.cloneNode(true);
+            
+            // 填充數據
+            historyItem.querySelector('.test-message').textContent = item.message;
+            historyItem.querySelector('.test-time').textContent = new Date(item.timestamp).toLocaleString();
+            historyItem.querySelector('.category').textContent = this.categoryMap[item.result.category] || item.result.category;
+            historyItem.querySelector('.confidence').textContent = `${Math.round(item.result.confidence * 100)}%`;
+            
+            const sensitiveSpan = historyItem.querySelector('.sensitive');
+            if (item.result.isSensitive) {
+                sensitiveSpan.textContent = '敏感';
+                sensitiveSpan.classList.add('bg-danger');
+            } else {
+                sensitiveSpan.textContent = '正常';
+                sensitiveSpan.classList.add('bg-success');
+            }
+            
+            historyItem.querySelector('.response').textContent = item.result.generatedResponse || '-';
+            
+            historyList.appendChild(historyItem);
+        });
+    }
+
+    setLoading(isLoading) {
+        const spinner = document.getElementById('loading-spinner');
+        const testButton = document.querySelector('.test-button');
+        const testInput = document.querySelector('.test-input');
+        
+        if (isLoading) {
+            spinner.classList.remove('d-none');
+            testButton.disabled = true;
+            testInput.disabled = true;
+        } else {
+            spinner.classList.add('d-none');
+            testButton.disabled = false;
+            testInput.disabled = false;
+        }
+    }
+
+    updateTestResult(result) {
+        // 更新類別
+        const categorySpan = document.querySelector('.test-category');
+        categorySpan.textContent = this.categoryMap[result.category] || result.category;
+        
+        // 更新信心度
+        const confidenceSpan = document.querySelector('.test-confidence');
+        confidenceSpan.textContent = `${Math.round(result.confidence * 100)}%`;
+        
+        // 更新語義意圖
+        const intentSpan = document.querySelector('.test-intent');
+        intentSpan.textContent = result.intent || '-';
+        
+        // 更新關鍵詞
+        const keywordsDiv = document.querySelector('.test-keywords');
+        keywordsDiv.innerHTML = '';
+        if (result.keywords && result.keywords.length > 0) {
+            result.keywords.forEach(keyword => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-secondary me-1';
+                badge.textContent = keyword;
+                keywordsDiv.appendChild(badge);
+            });
+        } else {
+            keywordsDiv.textContent = '-';
+        }
+        
+        // 更新敏感詞狀態
+        const sensitiveSpan = document.querySelector('.test-sensitive');
+        if (result.isSensitive) {
+            sensitiveSpan.textContent = '敏感';
+            sensitiveSpan.className = 'test-sensitive badge bg-danger';
+        } else {
+            sensitiveSpan.textContent = '正常';
+            sensitiveSpan.className = 'test-sensitive badge bg-success';
+        }
+        
+        // 更新生成回覆
+        const responseDiv = document.querySelector('.test-response');
+        responseDiv.textContent = result.generatedResponse || '-';
+        
+        // 顯示結果區域
+        const resultWrapper = document.querySelector('.test-result-wrapper');
+        resultWrapper.classList.add('show');
+    }
+
+    clearTestResult() {
+        document.querySelector('.test-category').textContent = '-';
+        document.querySelector('.test-confidence').textContent = '-';
+        document.querySelector('.test-intent').textContent = '-';
+        document.querySelector('.test-keywords').textContent = '-';
+        document.querySelector('.test-sensitive').className = 'test-sensitive badge bg-secondary';
+        document.querySelector('.test-sensitive').textContent = '-';
+        document.querySelector('.test-response').textContent = '-';
+        
+        const resultWrapper = document.querySelector('.test-result-wrapper');
+        resultWrapper.classList.remove('show');
     }
 
     showAlert(type, message) {

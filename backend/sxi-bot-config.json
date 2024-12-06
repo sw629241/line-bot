@@ -112,21 +112,6 @@
       "systemPrompt": "請判斷是否為敏感詞彙，性別、個人資訊、政治，皆屬於敏感詞。",
       "examples": "Q：你是男是女?\nA：不回應\n\nQ：你結婚了嗎?\nA：不回應\n\nQ：政黨 二性 \nA：不回應",
       "rules": []
-    },
-    "product": {
-      "systemPrompt": "",
-      "examples": "",
-      "rules": []
-    },
-    "price": {
-      "systemPrompt": "",
-      "examples": "",
-      "rules": []
-    },
-    "promotion": {
-      "systemPrompt": "",
-      "examples": "",
-      "rules": []
     }
   },
   "sensitiveWords": []
