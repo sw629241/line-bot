@@ -37,6 +37,11 @@ class ApiService {
      */
     async saveConfig(botId, config) {
         try {
+            console.log('正在保存配置...', {
+                botId,
+                config: JSON.stringify(config, null, 2)
+            });
+            
             const response = await fetch(`${this.baseUrl}/bots/${botId}/config`, {
                 method: 'POST',
                 headers: {
@@ -44,11 +49,20 @@ class ApiService {
                 },
                 body: JSON.stringify(config)
             });
+            
             if (!response.ok) {
-                const error = await response.text();
-                throw new Error(`Failed to save config: ${error}`);
+                const errorText = await response.text();
+                console.error('保存配置失敗，伺服器回應:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorText
+                });
+                throw new Error(`Failed to save config: ${errorText}`);
             }
-            return await response.json();
+            
+            const result = await response.json();
+            console.log('配置保存成功:', result);
+            return result;
         } catch (error) {
             console.error('Error saving config:', error);
             throw error;

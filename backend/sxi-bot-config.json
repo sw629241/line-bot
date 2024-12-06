@@ -1,8 +1,8 @@
 {
   "categories": {
     "products": {
-      "systemPrompt": "不確定的問題，一律回答:\"已通知小編進行回覆，請稍等。\"",
-      "examples": "Q: at5 跟 at5s 的差異\nA: 主要差異是電氣規格，at5 目前有二個系列 P系列 S系列，S系列就是基於P系列的閹割版本，價格一半，效能一半，你可以這樣理解。\n\nQ:at5s 適合用在什麼魚缸。\nA:缸子水深不超過45cm ，的缸子都合適。\n\nQ: at5s新版本有什麼功能?\nA: 多了語音控制及更多的預設光譜變化。\n\nQ:威爾康跟尼特利哪個好?\nA:各有各的好，二者的主要差異在於，光譜的表現上，直觀一點來說，威燈在紅草發色上表現比較優秀，尼燈在生長方面的綜合評分較高。",
+      "systemPrompt": "不確定的問題，一律回答:\"已通知小編進行回覆，請稍等。A\"",
+      "examples": "Q: at5 跟 at5s 的差異A\nA: 主要差異是電氣規格，at5 目前有二個系列 P系列 S系列，S系列就是基於P系列的閹割版本，價格一半，效能一半，你可以這樣理解。\n\nQ:at5s 適合用在什麼魚缸。\nA:缸子水深不超過45cm ，的缸子都合適。\n\nQ: at5s新版本有什麼功能?\nA: 多了語音控制及更多的預設光譜變化。\n\nQ:威爾康跟尼特利哪個好?\nA:各有各的好，二者的主要差異在於，光譜的表現上，直觀一點來說，威燈在紅草發色上表現比較優秀，尼燈在生長方面的綜合評分較高。",
       "rules": [
         {
           "keywords": "at5 和 at5s 比較",
@@ -30,14 +30,14 @@
       "rules": [
         {
           "keywords": "at5 價格",
-          "ratio": "100",
           "response": "您可以先行參閱網站：https://www.sxi.com.tw ，或等小編進行回覆，已通知小編進行回覆，請稍等。",
+          "ratio": 0,
           "style": "親切"
         },
         {
           "keywords": "at6 多少錢",
-          "ratio": "100",
           "response": "您可以先行參閱網站：https://www.sxi.com.tw ，或等小編進行回覆，已通知小編進行回覆，請稍等。",
+          "ratio": 0,
           "style": "親切"
         }
       ]
@@ -48,20 +48,20 @@
       "rules": [
         {
           "keywords": "運送 配送",
-          "ratio": "100",
           "response": "目前我們配合的是黑貓，全台幾乎都是隔天到貨，離島以及天災等不可抗拒因素外。",
+          "ratio": 0,
           "style": "專業"
         },
         {
           "keywords": "運費",
-          "ratio": "100",
           "response": "目前我們配合的是黑貓，成本比較高，但運輸品質跟貨物比較有保障，賣場吸收掉了部分運費，一次購買都只收90.。",
+          "ratio": 0,
           "style": "親切"
         },
         {
           "keywords": "免運",
-          "ratio": "100",
           "response": "抱歉，我們目前不提供免運。",
+          "ratio": 0,
           "style": "親切"
         }
       ]
@@ -72,14 +72,14 @@
       "rules": [
         {
           "keywords": "折扣",
-          "ratio": "100",
           "response": "親愛的，真的很抱歉呢～我們的商品已經是精挑細選，保證品質超棒的💦🐠 而且價格也真的很親民了🥹💖 希望能用最好的產品，～期待你的支持喔❤️~",
+          "ratio": 0,
           "style": "親切"
         },
         {
           "keywords": "活動",
-          "ratio": "100",
           "response": "雙11大優惠到啦～🎉🎁 現在全館免運費，讓你輕鬆把心愛的水族用品帶回家！🐟💧 無論是魚魚的必需品還是裝飾的小驚喜，現在下單最划算～快來逛逛，把好康搶回家吧！😍🎊",
+          "ratio": 0,
           "style": "親切"
         }
       ]
@@ -90,32 +90,20 @@
       "rules": [
         {
           "keywords": "燈具設定：尼特利(尼燈)",
-          "ratio": "100",
           "response": "請參閱 https://www.bilibili.com/video/BV1JV4y1G7jJ/?spm_id_from=333.337.search-card.all.click",
+          "ratio": 0,
           "style": "專業"
         },
         {
           "keywords": "燈具設定：威爾康(威燈)",
-          "ratio": "100",
           "response": "請參閱 https://youtu.be/K8SlESCYH3M?si=IH6_u1gqr8CXFULM",
-          "style": "專業"
-        },
-        {
-          "keywords": "水草養殖",
-          "ratio": "100",
-          "response": "",
-          "style": "專業"
-        },
-        {
-          "keywords": "去除藻類",
-          "ratio": "100",
-          "response": "",
+          "ratio": 0,
           "style": "專業"
         },
         {
           "keywords": "故障維修",
-          "ratio": "0",
           "response": "已通知技術老編進行回覆，請稍等。",
+          "ratio": 0,
           "style": "專業"
         }
       ]
@@ -140,5 +128,6 @@
       "examples": "",
       "rules": []
     }
-  }
+  },
+  "sensitiveWords": []
 }

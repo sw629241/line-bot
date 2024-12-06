@@ -227,7 +227,6 @@ export class UI {
                 try {
                     const newBot = e.target.value;
                     this.currentBot = newBot;
-                    api.setCurrentBot(newBot);
                     await this.loadConfig();
                     this.showAlert('success', `已切換到 ${newBot}`);
                 } catch (error) {
@@ -245,13 +244,17 @@ export class UI {
                     const gptPrompt = document.querySelector(`#${panel}GptSettings .gpt-prompt`).value;
                     const gptExamples = document.querySelector(`#${panel}GptSettings .gpt-examples`).value;
 
+                    this.ensureCategoryStructure(panel);
+
+                    // 更新配置，保持其他設定不變
                     this.config.categories[panel] = {
                         ...this.config.categories[panel],
-                        systemPrompt: gptPrompt,
-                        examples: gptExamples
+                        systemPrompt: gptPrompt || '',
+                        examples: gptExamples || '',
+                        rules: this.config.categories[panel].rules || []
                     };
-                    await api.saveConfig(this.currentBot, this.config);
-                    this.showAlert('success', '已儲存 GPT 設定');
+
+                    await this.saveConfigWithErrorHandling('已儲存 GPT 設定');
                 } catch (error) {
                     console.error('儲存 GPT 設定失敗:', error);
                     this.showAlert('error', '儲存 GPT 設定失敗: ' + error.message);
@@ -269,9 +272,10 @@ export class UI {
                         .map(word => word.trim())
                         .filter(word => word);
 
-                    this.config.sensitiveWords = sensitiveWords;
-                    await api.saveConfig(this.currentBot, this.config);
-                    this.showAlert('success', '已儲存敏感詞設定');
+                    this.ensureConfigStructure();
+                    this.config.sensitiveWords = sensitiveWords || [];
+
+                    await this.saveConfigWithErrorHandling('已儲存敏感詞設定');
                 } catch (error) {
                     console.error('儲存敏感詞設定失敗:', error);
                     this.showAlert('error', '儲存敏感詞設定失敗: ' + error.message);
@@ -280,35 +284,64 @@ export class UI {
         }
 
         // 新增規則按鈕事件
-        const addRuleButton = document.querySelector('.add-rule');
-        if (addRuleButton) {
-            addRuleButton.addEventListener('click', () => {
+        document.querySelectorAll('.add-rule').forEach(button => {
+            button.addEventListener('click', () => {
+                const panel = button.closest('.tab-pane').id;
                 const newRule = {
                     keywords: '',
                     response: '',
                     ratio: 0,
                     style: '專業'
                 };
-                const rules = this.config.categories.products.rules || [];
+
+                // 確保該分類的規則陣列存在
+                this.ensureCategoryStructure(panel);
+                const rules = this.config.categories[panel].rules;
+                
+                // 添加新規則
                 rules.push(newRule);
-                this.updateRulesList(rules, document.querySelector('.rule-list'));
+                
+                // 更新 UI
+                const rulesList = button.closest('.card').querySelector('.rule-list');
+                this.updateRulesList(rules, rulesList);
             });
-        }
+        });
 
         // 規則列表相關事件（刪除和儲存）
-        const rulesList = document.querySelector('.rule-list');
-        if (rulesList) {
+        document.querySelectorAll('.card').forEach(container => {
+            const rulesList = container.querySelector('.rule-list');
+            if (!rulesList) return; // 如果不是規則列表的卡片，跳過
+
+            const panel = container.closest('.tab-pane').id;
+
             // 刪除規則
-            rulesList.addEventListener('click', (e) => {
+            rulesList.addEventListener('click', async (e) => {
                 if (e.target.classList.contains('delete-rule')) {
                     const index = parseInt(e.target.dataset.index);
-                    this.config.categories.products.rules.splice(index, 1);
-                    this.updateRulesList(this.config.categories.products.rules, rulesList);
+                    
+                    // 添加確認對話框
+                    if (!confirm('確定要刪除這條規則嗎？')) {
+                        return;
+                    }
+
+                    try {
+                        // 更新本地配置
+                        this.config.categories[panel].rules.splice(index, 1);
+                        
+                        // 更新 UI
+                        this.updateRulesList(this.config.categories[panel].rules, rulesList);
+                        
+                        // 直接保存到服務器
+                        await this.saveConfigWithErrorHandling('已刪除規則');
+                    } catch (error) {
+                        // 重新載入配置以恢復狀態
+                        await this.loadConfig();
+                    }
                 }
             });
 
             // 儲存規則
-            const saveRulesButton = document.querySelector('.save-rules');
+            const saveRulesButton = container.querySelector('.save-rules');
             if (saveRulesButton) {
                 saveRulesButton.addEventListener('click', async () => {
                     try {
@@ -319,16 +352,15 @@ export class UI {
                             style: row.querySelector('.rule-style').value
                         }));
 
-                        this.config.categories.products.rules = rules;
-                        await api.saveConfig(this.currentBot, this.config);
-                        this.showAlert('success', '已儲存規則設定');
+                        this.config.categories[panel].rules = rules;
+                        await this.saveConfigWithErrorHandling('已儲存規則設定');
                     } catch (error) {
                         console.error('儲存規則設定失敗:', error);
                         this.showAlert('error', '儲存規則設定失敗: ' + error.message);
                     }
                 });
             }
-        }
+        });
 
         // 測試按鈕事件
         document.querySelectorAll('.test-button').forEach(button => {
@@ -344,6 +376,44 @@ export class UI {
                 }
             });
         });
+    }
+
+    ensureConfigStructure() {
+        if (!this.config) {
+            this.config = {
+                categories: {},
+                sensitiveWords: []
+            };
+        }
+        if (!this.config.categories) {
+            this.config.categories = {};
+        }
+        if (!this.config.sensitiveWords) {
+            this.config.sensitiveWords = [];
+        }
+    }
+
+    async saveConfigWithErrorHandling(successMessage) {
+        try {
+            await api.saveConfig(this.currentBot, this.config);
+            this.showAlert('success', successMessage);
+        } catch (error) {
+            console.error('保存配置失敗:', error);
+            this.showAlert('error', '保存失敗: ' + error.message);
+            throw error;
+        }
+    }
+
+    ensureCategoryStructure(category) {
+        this.ensureConfigStructure();
+        
+        if (!this.config.categories[category]) {
+            this.config.categories[category] = {
+                systemPrompt: '',
+                examples: '',
+                rules: []
+            };
+        }
     }
 
     showAlert(type, message) {
