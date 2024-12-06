@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  linebot:
+    container_name: linebot
+    build: .
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - LINE_CHANNEL_ACCESS_TOKEN_SXI=${LINE_CHANNEL_ACCESS_TOKEN_SXI}
+      - LINE_CHANNEL_SECRET_SXI=${LINE_CHANNEL_SECRET_SXI}
+      - LINE_CHANNEL_ACCESS_TOKEN_FAS=${LINE_CHANNEL_ACCESS_TOKEN_FAS}
+      - LINE_CHANNEL_SECRET_FAS=${LINE_CHANNEL_SECRET_FAS}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+    networks:
+      - proxy-network
+    ports:
+      - "5000:5000"
+
+networks:
+  proxy-network:
+    external: true

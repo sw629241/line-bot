@@ -12,3 +12,9 @@ services:
       - ./data/npm:/data
       - ./data/letsencrypt:/etc/letsencrypt
       - ./logs/npm:/data/logs
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true

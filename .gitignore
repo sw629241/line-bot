@@ -38,3 +38,7 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+# NPM (nginx-proxy-manager) data
+/data
+/data/**/*

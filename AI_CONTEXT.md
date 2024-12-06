@@ -1,182 +1,123 @@
-# LineBot Project Context
+# LINE Bot 專案技術文檔
 
-## 專案結構
+## 專案架構
+
+### 目錄結構
 ```
 linebot/
-├── frontend/                # 前端程式碼
-│   ├── index.html          # 靜態首頁
-│   ├── admin.html          # 管理介面
-│   ├── admin.js            # 管理介面邏輯
-│   ├── api.js              # API 前端邏輯
-│   ├── messageService.js   # 訊息處理服務
-│   ├── ui.js              # UI 相關功能
-│   ├── styles.css         # 樣式表
-│   ├── bot-selector.html  # Bot 選擇器組件
-│   ├── category-tabs.html # 分類標籤組件
-│   ├── gpt-settings.html  # GPT 設定組件
-│   ├── reply-rules.html   # 回覆規則組件
-│   └── test-area.html     # 測試區域組件
-│
-├── backend/                # 後端程式碼
-│   ├── config.js          # 環境變數和配置管理
-│   ├── server.js         # 主入口，服務器配置和路由管理
-│   ├── line.js           # LINE Bot 相關邏輯
-│   ├── gpt.js            # GPT 交互邏輯
-│   ├── api.js            # 後端 API 接口處理
-│   ├── fas-bot-config.json # FAS Bot 配置
-│   └── sxi-bot-config.json # SXI Bot 配置
-│
-├── logs/                  # 日誌目錄
-├── data/                  # 數據目錄
-├── .env                   # 環境變數
-├── app.js                # 主程式入口
-└── package.json          # 專案配置
+├── backend/                # 後端服務
+│   ├── api.js             # API 路由和處理
+│   ├── config.js          # 配置管理
+│   ├── gpt.js             # GPT 整合和處理
+│   ├── line.js            # LINE Bot 處理
+│   ├── server.js          # 服務器設定
+│   └── *-bot-config.json  # 機器人配置文件
+├── frontend/              # 前端界面
+│   ├── admin.html         # 管理介面
+│   ├── admin.js           # 管理邏輯
+│   ├── api.js            # API 調用
+│   ├── messageService.js  # 訊息處理
+│   ├── ui.js             # UI 組件
+│   └── styles.css        # 樣式表
+└── docker/               # Docker 相關文件
+    ├── Dockerfile        # LINE Bot 服務容器
+    ├── docker-compose.linebot.yml  # LINE Bot 服務編排
+    └── docker-compose.npm.yml      # Nginx 代理管理器編排
 
-## 路由結構
-- `/` -> frontend/index.html（靜態首頁）
-- `/admin.html` -> frontend/admin.html（管理介面）
-- `/webhook/:botType` -> 通用 webhook 路徑（支援 'sxi' 和 'fas' 兩種類型）
+### 環境配置
+1. 開發環境
+   - Node.js v20+
+   - PM2 (用於進程管理)
+   - Docker & Docker Compose
 
-## 代碼編輯規則
+2. 容器化服務
+   - LINE Bot 服務 (Node.js)
+   - Nginx Proxy Manager (反向代理)
 
-### 1. 文件組織
-- 前端代碼統一放在 `frontend/` 目錄
-- 後端代碼統一放在 `backend/` 目錄
-- 配置文件統一使用 .js 或 .json 格式
-- HTML 組件保持獨立文件
-- 日誌文件存放在 `logs/` 目錄
-- 數據文件存放在 `data/` 目錄
+3. 環境變數
+   ```env
+   # LINE Bot Configuration (sxi-bot)
+   LINE_CHANNEL_ACCESS_TOKEN_SXI=xxx
+   LINE_CHANNEL_SECRET_SXI=xxx
 
-### 2. 命名規範
-- 檔案名稱：使用 kebab-case（例：bot-selector.html）
-- JavaScript 變數和函數：使用 camelCase
-- 類別名稱：使用 PascalCase
-- HTML ID/Class：使用 kebab-case
+   # LINE Bot Configuration (fas-bot)
+   LINE_CHANNEL_ACCESS_TOKEN_FAS=xxx
+   LINE_CHANNEL_SECRET_FAS=xxx
 
-### 3. 代碼風格
-- 使用 ES6+ 語法
-- 使用 async/await 處理非同步操作
-- 善用解構賦值和箭頭函數
-- 保持函數單一職責
+   # OpenAI Configuration
+   OPENAI_API_KEY=xxx
 
-### 4. 錯誤處理
-- 所有 API 調用都需要 try-catch
-- 使用統一的錯誤提示機制（Alert 系統）
-- 錯誤訊息需要清晰易懂
+   # Server Configuration
+   PORT=5000
+   ```
 
-## 重構規劃重點
+## 開發規範
 
-### 1. 前端架構
-- **UI 組件化**
-  * 統一的事件處理機制
-  * 表單驗證和提交處理
-  * 錯誤提示統一管理
-  * 組件之間保持低耦合
+### 代碼組織
+1. 後端代碼
+   - 使用 ES Modules (import/export)
+   - 按功能模組化分離
+   - 配置文件統一管理
 
-- **狀態管理**
-  * 統一使用 api.js 管理配置
-  * 配置變更即時同步
-  * 本地緩存減少請求
+2. 前端代碼
+   - 模組化 JavaScript
+   - 組件式 UI 設計
+   - 統一的樣式管理
 
-- **用戶交互**
-  * 統一的提示機制
-  * 操作結果即時反饋
-  * 表單驗證完整性
+### 部署流程
+1. 開發環境
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-### 2. 後端架構
-- **配置管理**
-  * 統一的配置讀寫接口
-  * 配置格式驗證
-  * 配置變更日誌
+2. 生產環境
+   ```bash
+   # 使用 Docker Compose
+   docker-compose -f docker-compose.linebot.yml up -d
+   ```
 
-- **API 設計**
-  * RESTful 風格
-  * 統一的響應格式
-  * 錯誤碼規範
+## 注意事項
 
-- **模組化**
-  * 業務邏輯分離
-  * 工具函數集中
-  * 避免循環依賴
+### 安全性
+1. 環境變數
+   - 不要在代碼中硬編碼敏感信息
+   - 使用 .env 文件管理環境變數
+   - 生產環境使用安全的方式傳遞環境變數
 
-### 3. 性能優化
-- 配置緩存機制
-- API 響應優化
-- 靜態資源管理
-- 延遲加載策略
+2. API 安全
+   - LINE Webhook 驗證
+   - OpenAI API 密鑰保護
+   - 管理介面訪問控制
 
-## 開發注意事項
-1. 保持代碼簡潔，避免過度設計
-2. 及時處理 TODO 和 FIXME 標記
-3. 確保錯誤提示明確有用
-4. 保持文件及時更新
-5. 不要留下垃圾資料夾及文件
+### 維護建議
+1. 日誌管理
+   - 使用 PM2 日誌輪轉
+   - 定期清理舊日誌
+   - 監控錯誤日誌
 
-## 待優化項目
-1. 配置加載機制優化
-2. 錯誤處理完整性
-3. 日誌記錄系統
-4. 測試覆蓋率
+2. 數據備份
+   - 定期備份配置文件
+   - 保持環境變數的安全副本
+   - 文檔同步更新
 
-## 這次錯誤及修復注意事項
+3. 性能優化
+   - 監控記憶體使用
+   - 優化 GPT API 調用
+   - 定期檢查並優化數據庫
 
-1. 502 Bad Gateway 錯誤
-   - 原因：Node.js 服務器綁定到 localhost (127.0.0.1) 而不是所有接口 (0.0.0.0)
-   - 解決方案：
-     - 在 app.js 中確保服務器監聽 0.0.0.0
-     - 在 ecosystem.config.cjs 中設置 HOST 環境變量
-     - 確保 Nginx 代理配置正確指向服務器地址和端口
+### 開發建議
+1. 代碼風格
+   - 使用 ESLint 維護代碼質量
+   - 遵循 ES6+ 最佳實踐
+   - 保持代碼註釋的完整性
 
-2. LINE Webhook 400 錯誤
-   - 可能原因：
-     - LINE 簽名驗證失敗
-     - Channel Secret 或 Access Token 配置錯誤
-     - 環境變量未正確設置
-   - 解決方案：
-     - 添加詳細的日誌記錄來追踪請求處理過程
-     - 改進錯誤處理邏輯，提供更具體的錯誤信息
-     - 確保在所有環境中都創建 LINE 客戶端（不僅限於生產環境）
-     - 在 CORS 配置中添加 x-line-signature 到允許的標頭列表
+2. 測試策略
+   - 單元測試重要功能
+   - 集成測試 API 端點
+   - 壓力測試關鍵功能
 
-3. 配置管理注意事項
-   - 環境變量：
-     - LINE_CHANNEL_ACCESS_TOKEN_SXI
-     - LINE_CHANNEL_SECRET_SXI
-     - LINE_CHANNEL_ACCESS_TOKEN_FAS
-     - LINE_CHANNEL_SECRET_FAS
-   - 確保這些變量在所有環境中都正確設置
-   - 使用 dotenv 來管理環境變量
-   - 添加環境變量驗證邏輯，及早發現配置問題
-
-4. 日誌記錄最佳實踐
-   - 記錄關鍵操作的時間戳
-   - 記錄請求標頭和正文（注意敏感信息）
-   - 記錄驗證過程的詳細信息
-   - 為每個錯誤案例提供明確的錯誤消息
-   - 使用結構化的日誌格式便於分析
-
-5. 模塊導入路徑問題
-   - 問題描述：
-     - 系統報錯找不到 `utils.js` 文件
-     - PM2 在啟動時無法正確解析模塊路徑
-   - 原因分析：
-     - 入口點配置錯誤：原本指向 `backend/server.js`，導致相對路徑解析錯誤
-     - Node.js 的模塊解析機制：相對路徑是相對於執行入口文件的位置
-   - 解決方案：
-     - 將 PM2 的入口點改為 `app.js`
-     - 確保所有的導入路徑使用正確的相對路徑
-     - 使用 `import.meta.url` 和 `fileURLToPath` 處理 ES 模塊的路徑
-   - 最佳實踐：
-     - 使用絕對路徑或項目根目錄相對路徑
-     - 在配置文件中明確指定入口點
-     - 統一使用 ES 模塊語法
-     - 添加路徑別名配置以簡化導入
-
-6. 其他注意事項
-   - PM2 配置：
-     - 使用 `ecosystem.config.cjs` 而不是 `.js` 以支持 CommonJS
-     - 設置適當的 `ignore_watch` 以避免不必要的重啟
-   - 文件組織：
-     - 保持清晰的目錄結構
-     - 使用明確的文件命名約定
-     - 將共用工具函數集中管理
+3. 版本控制
+   - 使用語義化版本
+   - 保持清晰的提交信息
+   - 使用功能分支開發
