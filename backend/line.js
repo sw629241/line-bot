@@ -85,12 +85,11 @@ export async function handleWebhook(req, res, botType, client) {
                         if (event.message.type === 'text') {
                             try {
                                 // 讀取配置文件
-                                const configPath = join(__dirname, `${botType}-bot-config.json`);
-                                const configFile = JSON.parse(await readFile(configPath, 'utf8'));
+                                const configFile = JSON.parse(await readFile(join(__dirname, `${botType}-bot-config.json`), 'utf8'));
                                 
                                 // 使用 GPT 分析訊息
                                 const analysis = await analyzeMessage(event.message.text, configFile.categories);
-                                console.log('GPT Analysis:', analysis);
+                                console.log(`[${botType}-bot] GPT 分析結果:`, analysis);
 
                                 // 使用分析結果回覆
                                 if (analysis && analysis.generatedResponse) {
