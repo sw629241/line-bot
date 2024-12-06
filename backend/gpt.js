@@ -29,17 +29,27 @@ export async function analyzeMessage(userMessage, categories) {
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
+            console.log('\n=== 開始分析訊息 ===');
+            console.log('用戶訊息:', userMessage);
+            
             // 構建系統提示詞
             const systemPrompt = buildSystemPrompt(categories);
             
             // 構建用戶提示詞
-            const userPrompt = buildUserPrompt(userMessage, categories);
+            const userPrompt = `請分析以下訊息：${userMessage}
 
-            console.log(`嘗試 GPT 分析 (第 ${attempt} 次)`);
+請特別注意：
+1. 這個訊息是否包含敏感詞
+2. 訊息的整體語意是什麼
+3. 是否匹配到任何類別的關鍵概念
+4. 應該使用哪個類別的規則來回應
+
+請以 JSON 格式回應，不要加入任何其他說明。`;
+
             console.log('系統提示詞:', systemPrompt);
             console.log('用戶提示詞:', userPrompt);
 
-            // 調用GPT API
+            // 調用 GPT API
             const response = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [
@@ -53,49 +63,36 @@ export async function analyzeMessage(userMessage, categories) {
                     }
                 ],
                 temperature: 0.7,
-                max_tokens: 800
+                max_tokens: 800,
+                presence_penalty: 0.6,
+                frequency_penalty: 0.3
             });
 
-            const result = response.choices[0]?.message?.content;
-            if (!result) {
-                throw new Error("No response from GPT");
-            }
+            console.log('\n=== GPT 回應 ===');
+            console.log('完整回應:', JSON.stringify(response.choices[0]?.message?.content, null, 2));
 
+            // 解析回應
             try {
-                const parsedResult = JSON.parse(result);
-                // 驗證所有必需的字段
-                const requiredFields = ['category', 'intent', 'confidence', 'keywords', 'isSensitive', 'generatedResponse'];
-                const missingFields = requiredFields.filter(field => !(field in parsedResult));
+                const result = JSON.parse(response.choices[0]?.message?.content);
                 
-                if (missingFields.length > 0) {
-                    throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+                // 如果是敏感詞，確保設置正確的標記
+                if (result.isSensitive) {
+                    result.category = 'sensitive';
+                    result.confidence = 1.0;
+                    result.generatedResponse = '很抱歉，我無法回答這個問題。';
                 }
 
-                // 設置默認值和類型轉換
-                const defaultResult = {
+                return result;
+            } catch (error) {
+                console.error('解析 GPT 回應時發生錯誤:', error);
+                return {
                     category: 'chat',
-                    intent: '',
-                    confidence: 0,
+                    intent: 'error_handling',
+                    confidence: 0.5,
                     keywords: [],
                     isSensitive: false,
-                    generatedResponse: ''
+                    generatedResponse: '抱歉，我現在無法處理您的請求。請稍後再試。'
                 };
-
-                const finalResult = { ...defaultResult, ...{
-                    category: String(parsedResult.category),
-                    intent: String(parsedResult.intent),
-                    confidence: Number(parsedResult.confidence) || 0,
-                    keywords: Array.isArray(parsedResult.keywords) ? parsedResult.keywords : [],
-                    isSensitive: Boolean(parsedResult.isSensitive),
-                    generatedResponse: String(parsedResult.generatedResponse)
-                }};
-
-                console.log('最終處理結果:', finalResult);
-                return finalResult;
-
-            } catch (parseError) {
-                console.error('Failed to parse GPT response:', result);
-                throw new Error(`Invalid JSON response: ${parseError.message}`);
             }
         } catch (error) {
             console.error(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
@@ -127,54 +124,49 @@ export async function analyzeMessage(userMessage, categories) {
  * @returns {string} 系統提示詞
  */
 function buildSystemPrompt(categories) {
-    return `你是一個專業的對話分析助手。你的任務是分析用戶訊息，並根據提供的類別設定進行判斷。
-請根據以下規則進行分析：
+    return `你是一個專業的客服機器人。你的任務是分析用戶訊息並返回固定格式的 JSON 回應。
 
-1. 首先判斷是否包含敏感詞。
-2. 如果不是敏感詞，則判斷最適合的類別。
-3. 分析用戶的語義意圖。
-4. 判斷訊息中的關鍵詞是否匹配類別中的設定。
-5. 如果需要生成回覆，請根據指定的動態比例和語言風格生成。
+分析步驟：
 
-你必須始終返回以下格式的 JSON，不要返回任何其他內容：
+1. 敏感詞檢查（最優先）：
+   - 檢查訊息是否涉及性別歧視、種族歧視等敏感話題
+   - 如果是敏感詞，立即將 isSensitive 設為 true 並停止後續分析
+
+2. 語意理解：
+   - 理解用戶訊息的整體語意和意圖
+   - 確定用戶想詢問的主題（產品資訊、價格、運送等）
+   - 尋找訊息中與規則相關的關鍵概念，不限於完全匹配
+
+3. 跨類別關鍵字匹配：
+   - 檢查所有類別的規則，不受類別限制
+   - 根據語意相關性找出最匹配的規則
+   - 一個訊息可能匹配多個類別的關鍵字
+
+4. 回應生成：
+   - 根據動態比例生成回應：
+     * 0%：完全使用固定回覆
+     * 50%：保留核心內容，重新組織語句
+     * 100%：保留核心訊息，完全重寫
+
+可用的類別和規則：
+${JSON.stringify(categories, null, 2)}
+
+返回格式：
 {
-    "category": "類別名稱，必須是以下之一：products, prices, shipping, promotions, chat, sensitive",
-    "intent": "用戶意圖的簡短描述",
+    "category": "匹配到的類別",
+    "intent": "用戶意圖描述",
     "confidence": 0.95,
-    "keywords": ["匹配到的關鍵詞列表"],
-    "isSensitive": false,
-    "generatedResponse": "根據類別設定生成的回覆內容"
+    "keywords": ["匹配到的關鍵概念"],
+    "isSensitive": true/false,
+    "generatedResponse": "生成的回應"
 }
 
 注意事項：
-1. 所有字段都必須返回，不能省略。
-2. 如果沒有相關內容，使用空字符串或空數組。
-3. confidence 值必須是 0-1 之間的數字。
-4. isSensitive 必須是布爾值（true/false）。
-5. keywords 必須是字符串數組。
-6. category 必須是預定義的類別之一。
-7. 不要在 JSON 之外添加任何解釋或說明。
-
-類別設定如下：
-${JSON.stringify(categories, null, 2)}`;
-}
-
-/**
- * 構建用戶提示詞
- * @param {string} userMessage - 用戶訊息
- * @param {Object} categories - 所有類別的設定
- * @returns {string} 用戶提示詞
- */
-function buildUserPrompt(userMessage, categories) {
-    return `請分析以下用戶訊息：
-${userMessage}
-
-請記住：
-1. 如果是敏感詞，將isSensitive設為true，不需要其他處理。
-2. 如果無法確定類別或找不到匹配的關鍵詞，將category設為"chat"（一般對話）。
-3. 關鍵詞判斷要考慮同義詞和變形詞（如"at5"和"at5s"）。
-4. confidence值範圍為0-1，表示判斷的信心程度。
-5. 如果需要生成回覆，請參考對應類別的動態比例和語言風格。`;
+1. 優先處理敏感詞
+2. 跨類別搜索關鍵字
+3. 使用語意理解而不是完全匹配
+4. 回應必須是完整的句子
+5. 所有字串使用雙引號`;
 }
 
 /**

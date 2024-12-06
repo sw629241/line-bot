@@ -1,5 +1,12 @@
 import crypto from 'crypto';
 import { lineConfig } from './config.js';
+import { analyzeMessage } from './gpt.js';
+import { readFile } from 'fs/promises';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // 驗證 LINE 簽名
 function validateSignature(body, signature, channelSecret) {
@@ -76,11 +83,32 @@ export async function handleWebhook(req, res, botType, client) {
                 switch (event.type) {
                     case 'message':
                         if (event.message.type === 'text') {
-                            // 暫時只返回確認消息
-                            await client.replyMessage(event.replyToken, {
-                                type: 'text',
-                                text: `收到您的訊息：${event.message.text}`
-                            });
+                            try {
+                                // 讀取配置文件
+                                const configPath = join(__dirname, `${botType}-bot-config.json`);
+                                const configFile = JSON.parse(await readFile(configPath, 'utf8'));
+                                
+                                // 使用 GPT 分析訊息
+                                const analysis = await analyzeMessage(event.message.text, configFile.categories);
+                                console.log('GPT Analysis:', analysis);
+
+                                // 使用分析結果回覆
+                                if (analysis && analysis.generatedResponse) {
+                                    await client.replyMessage(event.replyToken, {
+                                        type: 'text',
+                                        text: analysis.generatedResponse
+                                    });
+                                } else {
+                                    throw new Error('Invalid GPT analysis result');
+                                }
+                            } catch (error) {
+                                console.error('Error analyzing message:', error);
+                                // 發生錯誤時返回預設訊息
+                                await client.replyMessage(event.replyToken, {
+                                    type: 'text',
+                                    text: '抱歉，我現在無法正確處理您的訊息。請稍後再試。'
+                                });
+                            }
                         }
                         break;
                     case 'follow':
