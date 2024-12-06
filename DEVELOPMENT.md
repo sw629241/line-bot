@@ -32,7 +32,7 @@ linebot/
 │   ├── index.html          # 靜態首頁
 │   ├── admin.html          # 管理介面
 │   ├── admin.js            # 管理介面邏輯
-│   ├── api.js              # API 調用
+│   ├── api.js              # API 前端邏輯
 │   ├── messageService.js   # 訊息處理服務
 │   ├── ui.js              # UI 相關功能
 │   ├── styles.css         # 樣式表
@@ -43,16 +43,16 @@ linebot/
 │   └── test-area.html     # 測試區域組件
 │
 ├── backend/                # 後端程式碼
-│   ├── config.js          # 配置管理
-│   ├── gpt.js            # GPT 服務整合
-│   ├── line.js           # LINE Bot 核心功能
-│   ├── server.js         # 伺服器設定
-│   ├── utils.js          # 工具函數
-│   ├── webhook1.js       # Bot 1 的 webhook 處理
-│   ├── webhook2.js       # Bot 2 的 webhook 處理
+│   ├── config.js          # 環境變數和配置管理
+│   ├── server.js         # 主入口，服務器配置和路由管理
+│   ├── line.js           # LINE Bot 相關邏輯
+│   ├── gpt.js            # GPT 交互邏輯
+│   ├── api.js            # API 後端邏輯
 │   ├── fas-bot-config.json # FAS Bot 配置
 │   └── sxi-bot-config.json # SXI Bot 配置
 │
+├── logs/                  # 日誌目錄
+├── data/                  # 數據目錄
 ├── .env                   # 環境變數
 ├── app.js                # 主程式入口
 └── package.json          # 專案配置
@@ -60,10 +60,10 @@ linebot/
 
 ### API 端點配置
 - **主應用程式**: `https://linebot.sxi.com.tw/`
-- **健康檢查**: `https://linebot.sxi.com.tw/health`
-- **管理面板**: `https://linebot.sxi.com.tw/admin`
-- **主要 Webhook**: `https://linebot.sxi.com.tw/webhook1`
-- **次要 Webhook**: `https://linebot.sxi.com.tw/webhook2`
+- **管理面板**: `https://linebot.sxi.com.tw/admin.html`
+- **LINE Bot Webhook**: `https://linebot.sxi.com.tw/webhook/:botType`
+  - SXI Bot: `botType = sxi`
+  - FAS Bot: `botType = fas`
 
 ## 3. Nginx Proxy Manager 設定
 ### 安裝資訊
@@ -78,13 +78,13 @@ linebot/
    Details:
    - Domain Names: linebot.sxi.com.tw
    - Scheme: http
-   - Forward Hostname: localhost
+   - Forward Hostname: 10.0.0.8
    - Forward Port: 3000
 
    Custom Locations:
    location: /webhook1
    - Scheme: http
-   - Forward Hostname: localhost
+   - Forward Hostname: 10.0.0.8
    - Forward Port: 3000
    ```
 
@@ -93,13 +93,13 @@ linebot/
    Details:
    - Domain Names: linebot.sxi.com.tw
    - Scheme: http
-   - Forward Hostname: localhost
+   - Forward Hostname: 10.0.0.8
    - Forward Port: 3000
 
    Custom Locations:
    location: /webhook2
    - Scheme: http
-   - Forward Hostname: localhost
+   - Forward Hostname: 10.0.0.8
    - Forward Port: 3000
    ```
 
@@ -108,13 +108,13 @@ linebot/
    Details:
    - Domain Names: linebot.sxi.com.tw
    - Scheme: http
-   - Forward Hostname: localhost
+   - Forward Hostname: 10.0.0.8
    - Forward Port: 3000
 
    Custom Locations:
    location: /frontend
    - Scheme: http
-   - Forward Hostname: localhost
+   - Forward Hostname: 10.0.0.8
    - Forward Port: 3000
    ```
 
@@ -188,16 +188,6 @@ linebot/
 }
 ```
 
-### 回應風格說明
-- **幽默**: 使用輕鬆、友善的語氣，適合一般產品查詢
-- **專業**: 使用正式、技術性的語氣，適合技術性問題
-
-## 5. 部署說明
-### Docker 部署
-- 使用 docker-compose up -d 啟動
-- 通過 Nginx 代理管理器配置 SSL
-- 配置 webhook URL
-
 ### 安全配置
 - SSL/TLS: 已啟用並強制用於所有路由
 - HSTS: 已啟用，max-age=63072000
@@ -206,3 +196,41 @@ linebot/
   - X-Forwarded-Proto
   - X-Forwarded-For
   - X-Real-IP
+----
+
+### 口述補充
+
+我們是全部類別的內容發給 gpt 所以返回的內容不止是 判斷的類別 語義意圖 信心度。
+還要他幫我們判別 關鍵字，因為這個部分在怎麼仔細的設定，還是會有變形的詞彙，但指向相同的語意。
+所以包括了關鍵詞判斷，假設 訊息是 at5 跟 at5s 的差異，送到GPT後判斷為再問產品，就有 產品類別 的標籤，接著在判斷我們發給他的數據中 產品類別 的 回覆規則 中 的關鍵字 ，發現 at5 和 at5s 比較是吻合語意，再來將固定回覆內容及動態比例及語言風格，合成出一條新的句子返回我們bot，我們bot再發到 line api 回覆給客戶。
+所以我們應該還會收到 "生成內容"
+
+動態比例 只有固定的 0 50 100 ，抓取固定回覆的核心內容後，假設是50，就是一半是動態生成，一半是固定內容。(100%也是只是固定內容核心訊息帶入，用他自己的話再說一次)
+
+語言風格 ，如果動態比例是 0 就不需要語言風格，因為固定回覆內容本身是不容改變，包含標點符號空格等等。
+50 100 才會有語言風格帶入。
+
+最後是沒有匹配的話，就要判斷是否是 一般談話 或是 敏感詞，這是本次要製作的核心。
+回到問題上，如果判斷語意非敏感詞，多數應該要歸類於一般談話，碰到無法回答的問題，例如 at9 的性能如何，GPT數據庫沒有AT9資料，提示詞，類別範例，關鍵字都沒有提及相關資訊，所以GPT 會無法回答，這時候就要回覆 "'已通知....." ，這個部分會在 一般對話 GPT 設定 提示詞中給出具體回應方式。
+
+敏感詞，這個功能理論上要先做，因為只要判別是 敏感詞，GPT 只要判斷出，就直接回傳我們敏感詞，那我們BOT 就將忽略客戶訊息，不做回覆。
+
+sxi-bot 對應 /webhook1 及 /admin/sxi-bot/config.json，fas-bot 對應 /webhook2 及 /admin/fas-bot/config.json，用來切換不同站臺的設定值。
+
+標籤 及 gpt設定 及 回覆規則：
+每個標籤中各自包含"gpt設定"及"回覆規則"，因為我們需要 gpt判斷客戶意圖及語義，所以發給gpt的時候是將全部的標籤內容即"GPT設定及回覆規則，發給gpt做判斷，再以 json 格式回覆後，由我們BOT來做後續處理。
+流程：訊息 -> gpt 判斷語義意圖後，判斷的類別，判斷類別的信心度，跟據類別比對是否有相應關鍵詞觸發，觸發後跟據固定回覆內容及動態比例及語言風格，來產生一條新的訊息。--> bot -->line api。
+
+gpt設：
+1.提示詞，不確定的問題，一律回答:"已通知小編進行回覆，請稍等。"(範例)
+#作為該類別無法處理時的應對方式的輔助詞，如 at9 產品性能如何，確定是問產品，不在關鍵詞有匹配，分類範例也沒有相關資訊，也不在閒聊範圍，也不知道 at9 是什麼樣的產品，這時候回應"已通知小編進行回覆，請稍等。"
+2.分類範例，主要用QA形式來描述一些，不在關鍵詞內且可能出現的問答參考範例。
+
+回覆規則：
+1.關鍵詞，用來觸發 固定回覆 的 語義
+2.固定回覆，當動態比例為0時，只能使用固定回覆的內容回覆，100%相同，包含標點符號。
+3.動態比例，當設置為100，根據 固定回覆 及 語言風格 ，產生一條全新的話。
+4.語言風格，專業、親切、少女(是可愛的增強版，加表情符號等活潑熱情的表現)、幽默。
+
+測試區：
+測試的比對範圍是針對所有標籤的，不是測試當前標籤而已。

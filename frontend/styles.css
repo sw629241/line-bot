@@ -1,21 +1,23 @@
 :root {
-    --dark-bg: #1a1a1a;
-    --dark-card-bg: #2d2d2d;
-    --dark-header-bg: #252525;
-    --dark-border: #404040;
-    --dark-text: #e0e0e0;
-    --dark-text-secondary: #a0a0a0;
-    --dark-input-bg: #333333;
-    --dark-hover: #404040;
-    --dark-active: #505050;
-    --primary-blue: #0d6efd;
-    --primary-hover: #0b5ed7;
+    --dark-bg: rgba(18, 18, 24, 0.95);
+    --dark-card-bg: rgba(32, 32, 40, 0.7);
+    --dark-header-bg: rgba(28, 28, 35, 0.8);
+    --dark-border: rgba(64, 64, 80, 0.3);
+    --dark-text: rgba(240, 240, 255, 0.9);
+    --dark-text-secondary: rgba(180, 180, 195, 0.8);
+    --dark-input-bg: rgba(40, 40, 48, 0.6);
+    --dark-hover: rgba(64, 64, 80, 0.4);
+    --dark-active: rgba(80, 80, 100, 0.5);
+    --primary-blue: rgba(41, 98, 255, 0.9);
+    --primary-hover: rgba(33, 84, 230, 0.9);
+    --glass-effect: blur(10px);
 }
 
-/* 基本樣式設定 */
+/* 基本樣式 */
 body {
-    background-color: var(--dark-bg);
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     color: var(--dark-text);
+    min-height: 100vh;
 }
 
 .container {
@@ -28,62 +30,66 @@ body {
 .card {
     background-color: var(--dark-card-bg);
     border: 1px solid var(--dark-border);
-    border-radius: 8px;
+    border-radius: 12px;
     margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    backdrop-filter: var(--glass-effect);
+    -webkit-backdrop-filter: var(--glass-effect);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.18);
 }
 
 .card-header {
     background-color: var(--dark-header-bg);
     border-bottom: 1px solid var(--dark-border);
-    padding: 1rem;
-    color: var(--dark-text);
+    padding: 1.25rem;
+    border-radius: 12px 12px 0 0;
 }
 
-/* JSON Editor 樣式調整 */
-#configEditor {
-    height: 500px;
+.card-body {
     background-color: var(--dark-card-bg);
+}
+
+/* 表單元素 */
+.form-control, .form-select {
+    background-color: var(--dark-input-bg);
+    border: 1px solid var(--dark-border);
     color: var(--dark-text);
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: var(--dark-hover);
+    border-color: var(--primary-blue);
+    color: var(--dark-text);
+    box-shadow: 0 0 0 0.2rem rgba(41, 98, 255, 0.25);
 }
 
 /* 按鈕樣式 */
 .btn-primary {
     background-color: var(--primary-blue);
-    border-color: var(--primary-blue);
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.25rem;
 }
 
 .btn-primary:hover {
     background-color: var(--primary-hover);
-    border-color: var(--primary-hover);
-}
-
-/* 選擇器樣式 */
-.form-select {
-    cursor: pointer;
-    background-color: var(--dark-input-bg);
-    color: var(--dark-text);
-    border-color: var(--dark-border);
-}
-
-.form-select:focus {
-    background-color: var(--dark-input-bg);
-    color: var(--dark-text);
-    border-color: var(--primary-blue);
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
 /* 導航標籤 */
 .nav-tabs {
     border-bottom: none;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: var(--dark-card-bg);
+    border-radius: 12px;
 }
 
 .nav-tabs .nav-link {
     color: var(--dark-text-secondary);
     border: none;
-    padding: 0.75rem 1rem;
-    margin-right: 0.5rem;
-    border-radius: 6px;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
 }
 
 .nav-tabs .nav-link:hover {
@@ -96,252 +102,6 @@ body {
     background-color: var(--primary-blue);
 }
 
-/* 表單控件 */
-.form-control {
-    background-color: var(--dark-input-bg);
-    border-color: var(--dark-border);
-    color: var(--dark-text);
-}
-
-.form-control:focus {
-    background-color: var(--dark-input-bg);
-    border-color: var(--primary-blue);
-    color: var(--dark-text);
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-/* 表格整體樣式 */
-.table {
-    color: var(--dark-text);
-    background-color: var(--dark-card-bg);
-    border-color: var(--dark-border);
-}
-
-/* 表格的每個單元格樣式 */
-.table th,
-.table td {
-    background-color: var(--dark-card-bg);
-    border-color: var(--dark-border);
-    color: var(--dark-text);
-    padding: 0.75rem;
-}
-
-/* 表格標題列樣式 */
-.table thead th {
-    background-color: var(--dark-header-bg);
-    border-bottom: 2px solid var(--dark-border);
-    color: var(--dark-text);
-}
-
-/* 表格主體列樣式 */
-.table tbody tr {
-    background-color: var(--dark-card-bg);
-}
-
-/* 關鍵字欄位樣式 */
-.table th:nth-child(1),
-.table td:nth-child(1) {
-    width: 20%; /* 關鍵詞句 */
-}
-
-.table th:nth-child(2),
-.table td:nth-child(2) {
-    width: 40%; /* 固定回覆內容 */
-}
-
-.table th:nth-child(3),
-.table td:nth-child(3) {
-    width: 15%; /* 動態生成比例 */
-}
-
-.table th:nth-child(4),
-.table td:nth-child(4) {
-    width: 15%; /* 語言風格 */
-}
-
-.table th:nth-child(5),
-.table td:nth-child(5) {
-    width: 10%; /* 操作 */
-}
-
-/* 表格中的輸入框和下拉選單 */
-.table input.form-control,
-.table select.form-control {
-    background-color: var(--dark-input-bg);
-    border: 1px solid var(--dark-border);
-    color: var(--dark-text);
-    width: 100%;
-}
-
-/* 輸入框和下拉選單焦點時的樣式 */
-.table input.form-control:focus,
-.table select.form-control:focus {
-    background-color: var(--dark-input-bg);
-    border-color: var(--primary-blue);
-    color: var(--dark-text);
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
-
-/* 移除 Bootstrap 表格的默認背景色 */
-.table-striped tbody tr:nth-of-type(odd) {
-    background-color: var(--dark-card-bg) !important;
-}
-
-/* 移除懸停效果的白色背景 */
-.table tbody tr:hover {
-    background-color: var(--dark-hover) !important;
-}
-
-/* 表格響應式容器 */
-.table-responsive {
-    background-color: var(--dark-card-bg);
-    border-radius: 4px;
-}
-
-/* 刪除按鈕樣式調整 */
-.table .btn-danger {
-    background-color: #dc3545;
-    border-color: #dc3545;
-    color: white;
-}
-
-.table .btn-danger:hover {
-    background-color: #c82333;
-    border-color: #bd2130;
-}
-
-/* 新增規則按鈕 */
-#addKeywordBtn {
-    background-color: var(--primary-blue);
-    border-color: var(--primary-blue);
-    color: white;
-}
-
-#addKeywordBtn:hover {
-    background-color: var(--primary-hover);
-    border-color: var(--primary-hover);
-}
-
-/* 關鍵詞管理區域樣式 */
-.keywords-section {
-    background-color: var(--dark-card-bg);
-    padding: 1rem;
-    border-radius: 4px;
-    margin-top: 1rem;
-}
-
-.keywords-section h5 {
-    color: var(--dark-text);
-    margin-bottom: 1rem;
-}
-
-/* 按鈕樣式 */
-.btn-primary {
-    background-color: var(--primary-blue);
-    border-color: var(--primary-blue);
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-hover);
-    border-color: var(--primary-hover);
-}
-
-.btn-outline-primary {
-    color: var(--primary-blue);
-    border-color: var(--primary-blue);
-}
-
-.btn-outline-primary:hover {
-    background-color: var(--primary-blue);
-    border-color: var(--primary-blue);
-    color: white;
-}
-
-.btn-outline-primary.active {
-    background-color: var(--primary-blue);
-    color: white;
-}
-
-/* 設定區塊 */
-.settings-section, .keywords-section, .no-response-section {
-    padding: 1.5rem;
-    border-radius: 6px;
-    background-color: var(--dark-card-bg);
-}
-
-/* 關鍵詞管理表格 */
-.keywords-table {
-    margin-top: 1rem;
-}
-
-.keywords-table th,
-.keywords-table td {
-    padding: 0.75rem;
-    vertical-align: middle;
-}
-
-/* 警告框樣式 */
-.alert {
-    background-color: var(--dark-card-bg);
-    border: 1px solid var(--dark-border);
-    color: var(--dark-text);
-}
-
-.alert-info {
-    background-color: rgba(13, 110, 253, 0.1);
-    border-color: rgba(13, 110, 253, 0.2);
-}
-
-/* 標題樣式 */
-h5 {
-    color: var(--dark-text);
-    font-weight: 500;
-}
-
-/* 自定義滾動條 */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--dark-bg);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--dark-border);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--dark-hover);
-}
-
-/* 響應式調整 */
-@media (max-width: 768px) {
-    .container {
-        padding: 10px;
-    }
-    
-    #configEditor {
-        height: 300px;
-    }
-    
-    .bot-switch {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .nav-tabs .nav-link {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.9rem;
-    }
-
-    .table-responsive {
-        margin: 0 -1rem;
-    }
-}
-
 /* 測試區域樣式 */
 .test-area-container {
     margin-bottom: 2rem;
@@ -352,42 +112,43 @@ h5 {
 }
 
 .test-result-wrapper {
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--dark-input-bg) !important;
+    border: 1px solid var(--dark-border);
+    margin: 0;
+    transition: background-color 0.2s ease;
 }
 
-.test-result-content {
-    font-size: 0.95rem;
-    color: #e9ecef;
+.test-result-wrapper:hover {
+    background-color: var(--dark-hover) !important;
 }
 
-.result-item {
-    margin-bottom: 0.75rem;
-    line-height: 1.5;
+.test-result-wrapper:active {
+    background-color: var(--dark-active) !important;
 }
 
-.result-label {
-    font-weight: 600;
-    color: #adb5bd;
-    margin-right: 0.5rem;
-}
-
-.result-value {
-    color: #e9ecef;
-}
-
-.content-block {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.result-content {
-    margin-top: 0.5rem;
-    color: #e9ecef;
+.test-result {
+    color: var(--dark-text-secondary);
+    font-family: monospace;
     white-space: pre-wrap;
-    word-wrap: break-word;
+    word-break: break-word;
+    margin: 0;
 }
 
-.alert {
-    margin-bottom: 0;
+/* 深色背景 */
+.bg-darker {
+    background-color: var(--dark-bg);
+    backdrop-filter: var(--glass-effect);
+    -webkit-backdrop-filter: var(--glass-effect);
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .nav-tabs .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
 }

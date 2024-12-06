@@ -1,67 +1,79 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import { loadConfig } from './config.js';
-import { processMessageWithGPT } from './gpt.js';
-import { handleWebhook, handleTestMessage } from './line.js';
-import { logger } from './utils.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { lineClients, serverConfig } from './config.js';
+import { handleWebhook } from './line.js';
+import apiRouter from './api.js';
 
-const config = loadConfig();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
 
-// Initialize Express app
-const app = express();
+export function setupServer(app) {
+    // 設置中間件
+    app.use(cors(serverConfig.cors));
+    app.use(bodyParser.json({
+        verify: (req, res, buf) => {
+            req.rawBody = buf;  // 保存原始請求體用於驗證
+        }
+    }));
+    app.use(bodyParser.urlencoded({ extended: true }));
 
-// 設置中間件
-app.use(cors(config.cors));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// 請求日誌中間件
-app.use((req, res, next) => {
-    logger.info('Incoming request:', {
-        method: req.method,
-        url: req.url,
-        body: req.body,
-        query: req.query,
-        headers: req.headers
+    // 請求日誌中間件
+    app.use((req, res, next) => {
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+        if (req.method === 'POST') {
+            console.log('Request body:', JSON.stringify(req.body, null, 2));
+            console.log('Headers:', req.headers);
+        }
+        next();
     });
-    next();
-});
 
-// 設置路由
-app.post('/webhook/:botType', (req, res) => {
-    const botType = req.params.botType;
-    const client = config.lineClients[botType];
-    
-    if (!client) {
-        logger.error(`Invalid bot type: ${botType}`);
-        return res.status(400).json({ error: 'Invalid bot type' });
-    }
-    
-    handleWebhook(req, res, botType, client);
-});
+    // 設置靜態文件服務（移到最前面）
+    app.use(express.static(FRONTEND_DIR));
 
-app.post('/test-message', handleTestMessage);
+    // API 路由
+    app.use('/api', apiRouter);
 
-// 錯誤處理中間件
-app.use((err, req, res, next) => {
-    logger.error('Error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-});
+    // LINE Bot webhook 路由
+    app.post('/webhook1', (req, res) => {
+        const client = lineClients.sxi;
+        if (!client) {
+            console.error('SXI bot client not configured');
+            return res.status(400).json({ error: 'Bot not configured' });
+        }
+        handleWebhook(req, res, 'sxi', client);
+    });
 
-// 處理未捕獲的異常
-process.on('uncaughtException', (error) => {
-    logger.error('Uncaught Exception:', error);
-});
+    app.post('/webhook2', (req, res) => {
+        const client = lineClients.fas;
+        if (!client) {
+            console.error('FAS bot client not configured');
+            return res.status(400).json({ error: 'Bot not configured' });
+        }
+        handleWebhook(req, res, 'fas', client);
+    });
 
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+    // 靜態文件路由
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+    });
 
-// 啟動服務器
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, '0.0.0.0', () => {
-    logger.info(`Backend server is running at http://0.0.0.0:${PORT}`);
-});
+    app.get('/admin.html', (req, res) => {
+        res.sendFile(path.join(FRONTEND_DIR, 'admin.html'));
+    });
 
-export default app;
+    // 錯誤處理中間件
+    app.use((err, req, res, next) => {
+        console.error('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    });
+
+    // 404 處理
+    app.use((req, res) => {
+        console.log('404 Not Found:', req.url);
+        res.status(404).json({ error: 'Not Found' });
+    });
+}

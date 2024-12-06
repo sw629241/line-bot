@@ -1,68 +1,49 @@
 import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import { mkdir } from 'fs/promises';
-import { logger } from './utils.js';
+import { Client } from '@line/bot-sdk';
 
 // 初始化環境變數
 dotenv.config();
 
-// 檔案路徑配置
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const ROOT_DIR = dirname(__dirname);
+// 驗證環境變數
+const requiredEnvVars = [
+    'LINE_CHANNEL_ACCESS_TOKEN_SXI',
+    'LINE_CHANNEL_SECRET_SXI',
+    'LINE_CHANNEL_ACCESS_TOKEN_FAS',
+    'LINE_CHANNEL_SECRET_FAS'
+];
 
-// 確保必要目錄存在
-export async function ensureDirectories() {
-    const dirs = [
-        join(ROOT_DIR, 'logs'),
-        join(ROOT_DIR, 'frontend'),
-        join(ROOT_DIR, 'backend')
-    ];
-    
-    for (const dir of dirs) {
-        await mkdir(dir, { recursive: true });
-    }
+// 檢查環境變數
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+    console.warn(`Warning: Missing LINE bot environment variables: ${missingEnvVars.join(', ')}`);
+    console.warn('Some features may not work properly.');
 }
-
-// LINE Bot 配置
-const lineConfig = {
-    bot1: {
-        channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN_1,
-        channelSecret: process.env.LINE_CHANNEL_SECRET_1
-    },
-    bot2: {
-        channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN_2,
-        channelSecret: process.env.LINE_CHANNEL_SECRET_2
-    }
-};
-
-// OpenAI 配置
-const openaiConfig = {
-    apiKey: process.env.OPENAI_API_KEY
-};
 
 // 服務器配置
-const serverConfig = {
-    port: process.env.PORT || 3000,
+export const serverConfig = {
+    host: process.env.HOST || '0.0.0.0',
+    port: process.env.PORT || 5000,
     cors: {
         origin: '*',
-        methods: ['GET', 'POST']
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'x-line-signature']
     }
 };
 
-// 加載配置
-export function loadConfig() {
-    return {
-        line: lineConfig,
-        openai: openaiConfig,
-        server: serverConfig
-    };
-}
+// LINE Bot 配置
+export const lineConfig = {
+    sxi: {
+        channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN_SXI,
+        channelSecret: process.env.LINE_CHANNEL_SECRET_SXI
+    },
+    fas: {
+        channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN_FAS,
+        channelSecret: process.env.LINE_CHANNEL_SECRET_FAS
+    }
+};
 
-// 導出個別配置
-export {
-    lineConfig,
-    openaiConfig,
-    serverConfig
+// 創建 LINE Bot 客戶端
+export const lineClients = {
+    sxi: new Client(lineConfig.sxi),
+    fas: new Client(lineConfig.fas)
 };

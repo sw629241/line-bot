@@ -7,15 +7,15 @@
             <div class="mb-3">
                 <label class="form-label" for="testInput">測試訊息</label>
                 <div class="input-group">
-                    <input class="form-control test-input" id="testInput" placeholder="輸入測試訊息..." type="text"/>
+                    <input class="form-control test-input" id="testInput" placeholder="輸入測試訊息..." type="text" style="height: 38px;"/>
                     <button class="btn btn-primary test-button" type="button">測試</button>
                 </div>
             </div>
             <div class="test-result-container">
                 <label class="form-label">測試結果</label>
-                <div class="test-result-wrapper bg-darker rounded p-3">
-                    <div class="test-result">尚未執行測試</div>
-                </div>
+                <pre class="test-result-wrapper rounded p-3" style="background-color: var(--dark-input-bg);">
+                    <code class="test-result">尚未執行測試</code>
+                </pre>
             </div>
         </div>
     </div>

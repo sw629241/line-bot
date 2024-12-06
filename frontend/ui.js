@@ -1,430 +1,376 @@
-import { ApiService } from './api.js';
+import { api } from './api.js';
 
-class UI {
+export class UI {
     constructor() {
         this.currentBot = 'sxi-bot';
-        this.currentCategory = 'products';
-        this.categoryConfigs = {};
-        this.api = new ApiService();
-        this.alertTimeout = null;
-        
-        // 確保 window.ui 存在
-        window.ui = this;
+        this.config = null;
+        this.initialized = false;
     }
 
     async init() {
         try {
             console.log('初始化 UI...');
-            
-            // 等待 DOM 載入完成
-            if (document.readyState === 'loading') {
-                await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
-            }
-            
-            await this.loadInitialConfig();
-            await this.initializeComponents();
+            // 先載入組件，再載入配置
+            await this.loadComponents();
+            await this.loadConfig();
             console.log('UI 初始化完成');
         } catch (error) {
             console.error('UI 初始化失敗:', error);
-            this.showAlert('danger', '初始化失敗: ' + error.message);
+            this.showAlert('error', '初始化失敗: ' + error.message);
         }
     }
 
-    async loadInitialConfig() {
+    async loadConfig() {
         try {
-            const config = await this.api.getConfig();
-            if (config && config.categories) {
-                this.categoryConfigs = config.categories;
+            console.log('開始載入配置...');
+            console.log('當前 Bot:', this.currentBot);
+            
+            this.config = await api.getConfig(this.currentBot);
+            console.log('配置載入成功:', this.config);
+            
+            if (!this.config || !this.config.categories) {
+                throw new Error('配置格式無效');
             }
+            
+            this.updateUI();
+            console.log('UI 更新完成');
         } catch (error) {
-            console.error('載入初始配置失敗:', error);
-            this.showAlert('danger', '載入初始配置失敗: ' + error.message);
+            console.error('載入配置失敗:', error);
+            this.showAlert('error', '載入配置失敗: ' + error.message);
         }
     }
 
-    async initializeComponents() {
+    async loadComponents() {
         try {
-            // 初始化所有 GPT 設置容器
-            document.querySelectorAll('.gpt-settings-container').forEach(async container => {
-                await this.initGptSettings(container);
-            });
+            console.log('開始載入組件...');
             
-            // 初始化所有回覆規則容器
-            document.querySelectorAll('.reply-rules-container').forEach(async container => {
-                await this.initReplyRules(container);
-            });
-            
-            // 初始化所有測試區域容器
-            document.querySelectorAll('.test-area-container').forEach(async container => {
-                await this.initTestArea(container);
-            });
-
-            // 初始化 Bot 選擇器
-            await this.initBotSelector();
-        } catch (error) {
-            console.error('初始化組件失敗:', error);
-            this.showAlert('danger', '初始化組件失敗: ' + error.message);
-        }
-    }
-
-    async initBotSelector() {
-        const selector = document.querySelector('#bot-selector');
-        if (!selector) return;
-
-        selector.addEventListener('change', (event) => {
-            this.currentBot = event.target.value;
-            this.api.setCurrentBot(this.currentBot);
-            this.loadInitialConfig();
-        });
-    }
-
-    async initGptSettings(container) {
-        try {
-            const category = this.getCurrentCategory(container);
-            const config = this.categoryConfigs[category] || { systemPrompt: '', examples: '' };
-            
-            const template = `
-                <div class="mb-3">
-                    <label for="${category}Prompt" class="form-label">系統提示詞</label>
-                    <textarea class="form-control gpt-prompt" id="${category}Prompt" rows="5">${config.systemPrompt}</textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="${category}Examples" class="form-label">範例對話</label>
-                    <textarea class="form-control gpt-examples" id="${category}Examples" rows="5">${config.examples}</textarea>
-                </div>
-                <button class="btn btn-primary save-gpt-settings">保存設置</button>
-            `;
-            
-            container.innerHTML = template;
-            
-            // 綁定保存按鈕事件
-            container.querySelector('.save-gpt-settings').addEventListener('click', async () => {
-                await this.saveGPTSettings(category);
-            });
-        } catch (error) {
-            console.error('初始化 GPT 設置失敗:', error);
-            this.showAlert('danger', '初始化 GPT 設置失敗: ' + error.message);
-        }
-    }
-
-    async initReplyRules(container) {
-        try {
-            const category = this.getCurrentCategory(container);
-            const config = this.categoryConfigs[category] || { rules: [] };
-            
-            const template = `
-                <div class="mb-3">
-                    <button class="btn btn-success add-rule">新增規則</button>
-                    <button class="btn btn-primary save-all-rules">保存所有規則</button>
-                </div>
-                <div class="rules-list"></div>
-            `;
-            
-            container.innerHTML = template;
-            
-            // 更新規則列表
-            this.updateRulesList(category, config.rules || []);
-            
-            // 綁定按鈕事件
-            container.querySelector('.add-rule').addEventListener('click', () => {
-                this.addNewRule(category);
-            });
-            
-            container.querySelector('.save-all-rules').addEventListener('click', async () => {
-                await this.saveAllRules(category);
-            });
-        } catch (error) {
-            console.error('初始化回覆規則失敗:', error);
-            this.showAlert('danger', '初始化回覆規則失敗: ' + error.message);
-        }
-    }
-
-    async initTestArea(container) {
-        try {
-            const category = this.getCurrentCategory(container);
-            
-            const template = `
-                <div class="mb-3">
-                    <label for="${category}Test" class="form-label">測試輸入</label>
-                    <textarea class="form-control" id="${category}Test" rows="3"></textarea>
-                </div>
-                <div class="mb-3">
-                    <button class="btn btn-primary test-button">測試</button>
-                </div>
-                <div class="mb-3">
-                    <label for="${category}TestResult" class="form-label">測試結果</label>
-                    <textarea class="form-control" id="${category}TestResult" rows="5" readonly></textarea>
-                </div>
-            `;
-            
-            container.innerHTML = template;
-            
-            // 綁定測試按鈕事件
-            container.querySelector('.test-button').addEventListener('click', async () => {
-                await this.testResponse(category);
-            });
-        } catch (error) {
-            console.error('初始化測試區域失敗:', error);
-            this.showAlert('danger', '初始化測試區域失敗: ' + error.message);
-        }
-    }
-
-    getCurrentCategory(container) {
-        const panel = container.closest('.tab-pane');
-        return panel ? panel.id : this.currentCategory;
-    }
-
-    updateRulesList(category, rules) {
-        const container = document.querySelector(`#${category} .rules-list`);
-        if (!container) return;
-        
-        const rulesHtml = rules.map((rule, index) => `
-            <div class="card mb-3 rule-item" data-index="${index}">
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">關鍵字</label>
-                        <input type="text" class="form-control rule-keywords" value="${rule.keywords || ''}" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">回覆</label>
-                        <textarea class="form-control rule-response" rows="3">${rule.response || ''}</textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">動態生成比例</label>
-                        <select class="form-control rule-ratio">
-                            <option value="0" ${rule.ratio === 0 ? 'selected' : ''}>0%</option>
-                            <option value="50" ${rule.ratio === 50 ? 'selected' : ''}>50%</option>
-                            <option value="100" ${rule.ratio === 100 ? 'selected' : ''}>100%</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">風格</label>
-                        <select class="form-control rule-style">
-                            <option value="專業" ${rule.style === '專業' ? 'selected' : ''}>專業</option>
-                            <option value="親切" ${rule.style === '親切' ? 'selected' : ''}>親切</option>
-                            <option value="少女" ${rule.style === '少女' ? 'selected' : ''}>少女</option>
-                            <option value="幽默" ${rule.style === '幽默' ? 'selected' : ''}>幽默</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-danger delete-rule">刪除</button>
-                </div>
-            </div>
-        `).join('');
-        
-        container.innerHTML = rulesHtml;
-        
-        // 綁定規則卡片事件
-        container.querySelectorAll('.rule-item').forEach(card => {
-            this.bindRuleCardEvents(card, category);
-        });
-    }
-
-    bindRuleCardEvents(card, category) {
-        const index = parseInt(card.dataset.index);
-        
-        // 監聽所有輸入欄位的變化
-        card.querySelectorAll('input, textarea, select').forEach(input => {
-            input.addEventListener('change', event => {
-                const field = event.target.classList[1].replace('rule-', '');
-                let value = event.target.value;
-                
-                if (event.target.type === 'checkbox') {
-                    value = event.target.checked;
-                } else if (event.target.type === 'number') {
-                    value = parseInt(value);
-                }
-                
-                this.updateRule(category, index, field, value);
-            });
-        });
-        
-        // 監聽刪除按鈕
-        card.querySelector('.delete-rule').addEventListener('click', () => {
-            this.deleteRule(category, index);
-        });
-    }
-
-    async addNewRule(category) {
-        if (!this.categoryConfigs[category]) {
-            this.categoryConfigs[category] = { rules: [] };
-        }
-        
-        const newRule = {
-            keywords: '',
-            response: '',
-            ratio: 50,
-            style: '專業',
-            enabled: true
-        };
-        
-        this.categoryConfigs[category].rules.push(newRule);
-        this.updateRulesList(category, this.categoryConfigs[category].rules);
-    }
-
-    async deleteRule(category, index) {
-        if (this.categoryConfigs[category]?.rules?.[index]) {
-            this.categoryConfigs[category].rules.splice(index, 1);
-            this.updateRulesList(category, this.categoryConfigs[category].rules);
-            await this.saveConfig();
-            this.showAlert('success', '規則已刪除');
-        }
-    }
-
-    updateRule(category, index, field, value) {
-        if (!this.categoryConfigs[category]) {
-            this.categoryConfigs[category] = { rules: [] };
-        }
-        
-        if (!this.categoryConfigs[category].rules[index]) {
-            this.categoryConfigs[category].rules[index] = {};
-        }
-        
-        this.categoryConfigs[category].rules[index][field] = value;
-    }
-
-    async saveGPTSettings(category) {
-        try {
-            const container = document.getElementById(`${category}GptSettings`);
-            if (!container) {
-                throw new Error(`找不到類別 ${category} 的設置容器`);
+            // 載入 Bot 選擇器
+            console.log('載入 Bot 選擇器...');
+            const botSelectorResponse = await fetch('bot-selector.html');
+            if (!botSelectorResponse.ok) {
+                throw new Error(`無法載入 Bot 選擇器: ${botSelectorResponse.status}`);
             }
+            const botSelectorHtml = await botSelectorResponse.text();
+            document.getElementById('botSelectorContainer').innerHTML = botSelectorHtml;
+            console.log('Bot 選擇器載入完成');
 
-            if (!this.validateGPTSettings(container)) {
-                return;
+            // 載入類別標籤
+            console.log('載入類別標籤...');
+            const categoryTabsResponse = await fetch('category-tabs.html');
+            if (!categoryTabsResponse.ok) {
+                throw new Error(`無法載入類別標籤: ${categoryTabsResponse.status}`);
             }
+            const categoryTabsHtml = await categoryTabsResponse.text();
+            document.getElementById('categoryTabsContainer').innerHTML = categoryTabsHtml;
+            console.log('類別標籤載入完成');
 
-            const config = await this.api.getConfig();
-            const promptElement = container.querySelector('.gpt-prompt');
-            const examplesElement = container.querySelector('.gpt-examples');
-
-            // 更新配置
-            if (!config.categories[category]) {
-                config.categories[category] = {};
+            // 載入 GPT 設定到各個面板
+            console.log('載入 GPT 設定...');
+            const gptSettingsResponse = await fetch('gpt-settings.html');
+            if (!gptSettingsResponse.ok) {
+                throw new Error(`無法載入 GPT 設定: ${gptSettingsResponse.status}`);
             }
-            config.categories[category].systemPrompt = promptElement.value;
-            config.categories[category].examples = examplesElement.value;
-
-            await this.api.saveConfig(config);
-            this.showAlert('success', 'GPT 設置已保存');
-        } catch (error) {
-            console.error('保存 GPT 設置失敗:', error);
-            this.showAlert('danger', '保存失敗: ' + error.message);
-        }
-    }
-
-    async saveAllRules(category) {
-        try {
-            const container = document.getElementById(`${category}ReplyRules`);
-            if (!container) {
-                throw new Error(`找不到類別 ${category} 的規則容器`);
-            }
-
-            const ruleElements = container.querySelectorAll('.rule-item');
-            const rules = [];
-
-            for (const element of ruleElements) {
-                if (!this.validateRule(element)) {
+            const gptSettingsHtml = await gptSettingsResponse.text();
+            
+            const gptPanels = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
+            gptPanels.forEach(panel => {
+                console.log(`載入 ${panel} 面板的 GPT 設定...`);
+                const container = document.getElementById(`${panel}GptSettings`);
+                if (!container) {
+                    console.error(`找不到 ${panel}GptSettings 容器`);
                     return;
                 }
+                container.innerHTML = gptSettingsHtml;
+            });
+            console.log('GPT 設定載入完成');
 
-                const rule = {
-                    keywords: element.querySelector('.rule-keywords').value.trim(),
-                    response: element.querySelector('.rule-response').value.trim(),
-                    ratio: Number(element.querySelector('.rule-ratio').value),
-                    style: element.querySelector('.rule-style').value
+            // 載入規則到所有面板
+            console.log('載入規則...');
+            const replyRulesResponse = await fetch('reply-rules.html');
+            if (!replyRulesResponse.ok) {
+                throw new Error(`無法載入回覆規則: ${replyRulesResponse.status}`);
+            }
+            const replyRulesHtml = await replyRulesResponse.text();
+
+            gptPanels.forEach(panel => {
+                console.log(`載入 ${panel} 面板的規則...`);
+                const container = document.getElementById(`${panel}ReplyRules`);
+                if (!container) {
+                    console.error(`找不到 ${panel}ReplyRules 容器`);
+                    return;
+                }
+                container.innerHTML = replyRulesHtml;
+            });
+            console.log('規則載入完成');
+
+            // 載入測試區域到各個面板
+            console.log('載入測試區域...');
+            const testAreaResponse = await fetch('test-area.html');
+            if (!testAreaResponse.ok) {
+                throw new Error(`無法載入測試區域: ${testAreaResponse.status}`);
+            }
+            const testAreaHtml = await testAreaResponse.text();
+            gptPanels.forEach(panel => {
+                console.log(`載入 ${panel} 面板的測試區域...`);
+                const container = document.getElementById(`${panel}TestArea`);
+                if (!container) {
+                    console.error(`找不到 ${panel}TestArea 容器`);
+                    return;
+                }
+                container.innerHTML = testAreaHtml;
+            });
+            console.log('測試區域載入完成');
+
+            // 初始化事件監聽器
+            console.log('初始化事件監聽器...');
+            this.initializeEventListeners();
+            console.log('事件監聽器初始化完成');
+
+            console.log('所有組件載入完成');
+        } catch (error) {
+            console.error('載入組件失敗：', error);
+            this.showAlert('error', '載入組件失敗：' + error.message);
+            throw error;
+        }
+    }
+
+    updateUI() {
+        if (!this.config) {
+            console.error('無法更新 UI: 配置為空');
+            return;
+        }
+
+        console.log('開始更新 UI...');
+        const categories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
+        categories.forEach(category => {
+            console.log(`更新 ${category} 類別...`);
+            if (this.config.categories && this.config.categories[category]) {
+                const categoryConfig = this.config.categories[category];
+                
+                // 更新 GPT 設定
+                const gptPrompt = document.querySelector(`#${category}GptSettings .gpt-prompt`);
+                const gptExamples = document.querySelector(`#${category}GptSettings .gpt-examples`);
+                
+                if (gptPrompt) {
+                    console.log(`設置 ${category} GPT 提示詞:`, categoryConfig.systemPrompt);
+                    gptPrompt.value = categoryConfig.systemPrompt || '';
+                } else {
+                    console.error(`找不到 ${category} GPT 提示詞輸入框`);
+                }
+                
+                if (gptExamples) {
+                    console.log(`設置 ${category} GPT 範例:`, categoryConfig.examples);
+                    gptExamples.value = categoryConfig.examples || '';
+                } else {
+                    console.error(`找不到 ${category} GPT 範例輸入框`);
+                }
+
+                // 更新規則列表
+                console.log(`更新 ${category} 規則列表:`, categoryConfig.rules);
+                const rulesList = document.querySelector(`#${category}ReplyRules .rule-list`);
+                if (rulesList) {
+                    this.updateRulesList(categoryConfig.rules || [], rulesList);
+                } else {
+                    console.error(`找不到 ${category} 規則列表容器`);
+                }
+            } else {
+                console.warn(`找不到 ${category} 類別配置`);
+            }
+        });
+
+        // 更新 Bot 選擇器
+        const botSelector = document.getElementById('botSelector');
+        if (botSelector) {
+            console.log('更新 Bot 選擇器:', this.currentBot);
+            botSelector.value = this.currentBot;
+        } else {
+            console.error('找不到 Bot 選擇器');
+        }
+        
+        console.log('UI 更新完成');
+    }
+
+    updateRulesList(rules, container) {
+        if (!container) return;
+
+        container.innerHTML = rules.map((rule, index) => `
+            <tr>
+                <td><input type="text" class="form-control rule-keyword" value="${rule.keywords || ''}" /></td>
+                <td><input type="text" class="form-control rule-response" value="${rule.response || ''}" /></td>
+                <td>
+                    <select class="form-select rule-ratio">
+                        <option value="0" ${rule.ratio === 0 ? 'selected' : ''}>0%</option>
+                        <option value="50" ${rule.ratio === 50 ? 'selected' : ''}>50%</option>
+                        <option value="100" ${rule.ratio === 100 ? 'selected' : ''}>100%</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="form-select rule-style">
+                        <option value="專業" ${rule.style === '專業' ? 'selected' : ''}>專業</option>
+                        <option value="親切" ${rule.style === '親切' ? 'selected' : ''}>親切</option>
+                        <option value="少女" ${rule.style === '少女' ? 'selected' : ''}>少女</option>
+                        <option value="幽默" ${rule.style === '幽默' ? 'selected' : ''}>幽默</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="btn btn-danger btn-sm delete-rule" data-index="${index}">刪除</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    initializeEventListeners() {
+        // Bot 選擇器事件
+        const botSelector = document.getElementById('botSelector');
+        if (botSelector) {
+            botSelector.addEventListener('change', async (e) => {
+                try {
+                    const newBot = e.target.value;
+                    this.currentBot = newBot;
+                    api.setCurrentBot(newBot);
+                    await this.loadConfig();
+                    this.showAlert('success', `已切換到 ${newBot}`);
+                } catch (error) {
+                    console.error('切換 bot 失敗:', error);
+                    this.showAlert('error', '切換 bot 失敗: ' + error.message);
+                }
+            });
+        }
+
+        // GPT 設定儲存按鈕事件
+        document.querySelectorAll('.save-gpt').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                try {
+                    const panel = e.target.closest('.tab-pane').id;
+                    const gptPrompt = document.querySelector(`#${panel}GptSettings .gpt-prompt`).value;
+                    const gptExamples = document.querySelector(`#${panel}GptSettings .gpt-examples`).value;
+
+                    this.config.categories[panel] = {
+                        ...this.config.categories[panel],
+                        systemPrompt: gptPrompt,
+                        examples: gptExamples
+                    };
+                    await api.saveConfig(this.currentBot, this.config);
+                    this.showAlert('success', '已儲存 GPT 設定');
+                } catch (error) {
+                    console.error('儲存 GPT 設定失敗:', error);
+                    this.showAlert('error', '儲存 GPT 設定失敗: ' + error.message);
+                }
+            });
+        });
+
+        // 敏感詞儲存按鈕事件
+        const saveSensitiveButton = document.querySelector('.save-sensitive');
+        if (saveSensitiveButton) {
+            saveSensitiveButton.addEventListener('click', async () => {
+                try {
+                    const sensitiveWords = document.querySelector('.sensitive-words').value
+                        .split('\n')
+                        .map(word => word.trim())
+                        .filter(word => word);
+
+                    this.config.sensitiveWords = sensitiveWords;
+                    await api.saveConfig(this.currentBot, this.config);
+                    this.showAlert('success', '已儲存敏感詞設定');
+                } catch (error) {
+                    console.error('儲存敏感詞設定失敗:', error);
+                    this.showAlert('error', '儲存敏感詞設定失敗: ' + error.message);
+                }
+            });
+        }
+
+        // 新增規則按鈕事件
+        const addRuleButton = document.querySelector('.add-rule');
+        if (addRuleButton) {
+            addRuleButton.addEventListener('click', () => {
+                const newRule = {
+                    keywords: '',
+                    response: '',
+                    ratio: 0,
+                    style: '專業'
                 };
-                rules.push(rule);
+                const rules = this.config.categories.products.rules || [];
+                rules.push(newRule);
+                this.updateRulesList(rules, document.querySelector('.rule-list'));
+            });
+        }
+
+        // 規則列表相關事件（刪除和儲存）
+        const rulesList = document.querySelector('.rule-list');
+        if (rulesList) {
+            // 刪除規則
+            rulesList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-rule')) {
+                    const index = parseInt(e.target.dataset.index);
+                    this.config.categories.products.rules.splice(index, 1);
+                    this.updateRulesList(this.config.categories.products.rules, rulesList);
+                }
+            });
+
+            // 儲存規則
+            const saveRulesButton = document.querySelector('.save-rules');
+            if (saveRulesButton) {
+                saveRulesButton.addEventListener('click', async () => {
+                    try {
+                        const rules = Array.from(rulesList.querySelectorAll('tr')).map(row => ({
+                            keywords: row.querySelector('.rule-keyword').value,
+                            response: row.querySelector('.rule-response').value,
+                            ratio: parseInt(row.querySelector('.rule-ratio').value),
+                            style: row.querySelector('.rule-style').value
+                        }));
+
+                        this.config.categories.products.rules = rules;
+                        await api.saveConfig(this.currentBot, this.config);
+                        this.showAlert('success', '已儲存規則設定');
+                    } catch (error) {
+                        console.error('儲存規則設定失敗:', error);
+                        this.showAlert('error', '儲存規則設定失敗: ' + error.message);
+                    }
+                });
             }
-
-            const config = await this.api.getConfig();
-            if (!config.categories[category]) {
-                config.categories[category] = {};
-            }
-            config.categories[category].rules = rules;
-
-            await this.api.saveConfig(config);
-            this.showAlert('success', '規則已保存');
-        } catch (error) {
-            console.error('保存規則失敗:', error);
-            this.showAlert('danger', '保存失敗: ' + error.message);
-        }
-    }
-
-    async saveConfig() {
-        await this.api.saveConfig({ categories: this.categoryConfigs });
-    }
-
-    async testResponse(category) {
-        try {
-            const input = document.getElementById(`${category}Test`).value;
-            const result = await this.api.testMessage(input, category);
-            document.getElementById(`${category}TestResult`).value = JSON.stringify(result, null, 2);
-        } catch (error) {
-            console.error('測試失敗:', error);
-            this.showAlert('danger', '測試失敗: ' + error.message);
-        }
-    }
-
-    showAlert(type, message, duration = 5000) {
-        const alertContainer = document.getElementById('alertContainer');
-        if (!alertContainer) return;
-
-        // 清除現有的 alert
-        if (this.alertTimeout) {
-            clearTimeout(this.alertTimeout);
-            alertContainer.innerHTML = '';
         }
 
-        // 創建新的 alert
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${type} alert-dismissible fade show`;
-        alert.role = 'alert';
-        alert.innerHTML = `
+        // 測試按鈕事件
+        document.querySelectorAll('.test-button').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                try {
+                    const panel = e.target.closest('.tab-pane').id;
+                    const message = document.querySelector(`#${panel}TestArea .test-input`).value;
+                    const response = await api.testMessage(this.currentBot, message, panel);
+                    document.querySelector(`#${panel}TestArea .test-output`).value = response.message;
+                } catch (error) {
+                    console.error('測試失敗:', error);
+                    this.showAlert('error', '測試失敗: ' + error.message);
+                }
+            });
+        });
+    }
+
+    showAlert(type, message) {
+        const alertContainer = document.getElementById('alert-container');
+        const alertElement = document.createElement('div');
+        alertElement.className = `alert alert-${type} alert-dismissible fade show`;
+        alertElement.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
+        alertContainer.appendChild(alertElement);
 
-        alertContainer.appendChild(alert);
-
-        // 設定自動消失
-        this.alertTimeout = setTimeout(() => {
-            alert.remove();
-        }, duration);
-    }
-
-    validateGPTSettings(container) {
-        const promptTextarea = container.querySelector('.gpt-prompt');
-        const examplesTextarea = container.querySelector('.gpt-examples');
-        
-        if (!promptTextarea || !promptTextarea.value.trim()) {
-            this.showAlert('danger', 'System Prompt 不能為空');
-            return false;
-        }
-
-        if (!examplesTextarea || !examplesTextarea.value.trim()) {
-            this.showAlert('danger', '對話範例不能為空');
-            return false;
-        }
-
-        return true;
-    }
-
-    validateRule(ruleElement) {
-        const keywords = ruleElement.querySelector('.rule-keywords').value.trim();
-        const response = ruleElement.querySelector('.rule-response').value.trim();
-        
-        if (!keywords) {
-            this.showAlert('danger', '關鍵字不能為空');
-            return false;
-        }
-
-        if (!response) {
-            this.showAlert('danger', '回應內容不能為空');
-            return false;
-        }
-
-        return true;
+        // 5 秒後自動關閉
+        setTimeout(() => {
+            alertElement.remove();
+        }, 5000);
     }
 }
 
+// 導出單例
 export const ui = new UI();
+
+// 在 DOM 載入完成後初始化
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await ui.init();
+    } catch (error) {
+        console.error('初始化失敗:', error);
+    }
+});
