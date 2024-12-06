@@ -91,22 +91,21 @@ export async function handleWebhook(req, res, botType, client) {
                                 const analysis = await analyzeMessage(event.message.text, configFile.categories);
                                 console.log(`[${botType}-bot] GPT 分析結果:`, analysis);
 
-                                // 使用分析結果回覆
+                                // 只有在有生成回應時才發送訊息
                                 if (analysis && analysis.generatedResponse) {
                                     await client.replyMessage(event.replyToken, {
                                         type: 'text',
                                         text: analysis.generatedResponse
                                     });
-                                } else {
-                                    throw new Error('Invalid GPT analysis result');
                                 }
+                                // 如果是敏感詞或沒有回應，不發送任何訊息
                             } catch (error) {
                                 console.error('Error analyzing message:', error);
                                 // 發生錯誤時返回預設訊息
-                                await client.replyMessage(event.replyToken, {
-                                    type: 'text',
-                                    text: '抱歉，我現在無法正確處理您的訊息。請稍後再試。'
-                                });
+                                // await client.replyMessage(event.replyToken, {
+                                //     type: 'text',
+                                //     text: '抱歉，我現在無法正確處理您的訊息。請稍後再試。'
+                                // });
                             }
                         }
                         break;

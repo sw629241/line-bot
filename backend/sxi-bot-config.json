@@ -2,31 +2,49 @@
   "categories": {
     "products": {
       "systemPrompt": "不確定的問題，回答:<default_response>已通知小編進行回覆，請稍等。<default_response>A",
-      "examples": "Q: at5 跟 at5s 的差異\nA: 主要差異是電氣規格，at5 目前有二個系列 P系列 S系列，S系列就是基於P系列的閹割版本，價格一半，效能一半，你可以這樣理解。\n\nQ:at5s 適合用在什麼魚缸。\nA:缸子水深不超過45cm ，的缸子都合適。\n\nQ: at5s新版本有什麼功能?\nA: 多了語音控制及更多的預設光譜變化。\n\nQ:威爾康跟尼特利哪個好?\nA:各有各的好，二者的主要差異在於，光譜的表現上，直觀一點來說，威燈在紅草發色上表現比較優秀，尼燈在生長方面的綜合評分較高。",
+      "examples": "",
       "rules": [
         {
           "keywords": "at5 和 at5s 比較",
           "response": "主要差異是電氣規格，at5 目前有二個系列 P系列 S系列，S系列就是基於P系列的閹割版本，價格一半，效能一半，你可以這樣理解。",
           "ratio": 100,
-          "style": "專業"
+          "style": "親切"
         },
         {
           "keywords": "威爾康 和 尼特利 比較",
           "response": "各有各的好，二者的主要差異在於，光譜的表現上，直觀一點來說，威燈在紅草發色上表現比較優秀，尼燈在生長方面的綜合評分較高。",
-          "ratio": 50,
-          "style": "專業"
+          "ratio": 100,
+          "style": "親切"
         },
         {
-          "keywords": "at5s 新功能 介紹",
-          "response": "多了語音控制及更多的預設光譜變化。",
-          "ratio": 50,
+          "keywords": "at5s III 新功能介紹",
+          "response": "多了語音控制及12種預設光譜，10段可調預設光譜，光效增加30%",
+          "ratio": 100,
           "style": "親切"
+        },
+        {
+          "keywords": "at7 7系",
+          "response": "AT7 7系列筒燈 有三個規格 90w 110w 150w ，可變焦照射角度，語音控制，觸摸開關，APP控制等",
+          "ratio": 100,
+          "style": "親切"
+        },
+        {
+          "keywords": "威爾康 week",
+          "response": "威燈最大的特色就是有UV波段，所以發色效果會比尼燈更優秀，APP控制，多段多光譜定時，日出日落光照模式，一應俱全。 光譜與大廠ADA相同，為什麼? 這不好說!，您可以看看他的A系列或許或明白。",
+          "ratio": 100,
+          "style": "親切"
+        },
+        {
+          "keywords": "威爾康 P系列",
+          "response": "P系列是威爾康的旗艦款，最大的特色就是有UV波段，所以發色效果會比尼燈更優秀，APP控制，多段多光譜定時，日出日落光照模式，一應俱全。 內建跨燈腳架，也可以透過配件改為吊燈。",
+          "ratio": 0,
+          "style": "專業"
         }
       ]
     },
     "prices": {
       "systemPrompt": "不確定的問題，回答:<default_response>已通知小編進行回覆，請稍等。<default_response>",
-      "examples": "Q: at5 多少錢\nA:已通知小編進行回覆，請稍等。\n\nQ:p600 多少\nA:已通知小編進行回覆，請稍等。\n\nQ:at6 價格\nA:已通知小編進行回覆，請稍等。",
+      "examples": "",
       "rules": [
         {
           "keywords": "at5 價格",
@@ -44,7 +62,7 @@
     },
     "shipping": {
       "systemPrompt": "不確定的問題，回答:<default_response>已通知小編進行回覆，請稍等。<default_response>",
-      "examples": "Q:有免運嗎?\nA:抱歉目前不提供免運。\n\nQ:運費怎麼算\nA:走黑貓，運費一律90.\n\nQ:使用哪一家物流\nA:黑貓宅配",
+      "examples": "",
       "rules": [
         {
           "keywords": "運送 配送",
@@ -68,7 +86,7 @@
     },
     "promotions": {
       "systemPrompt": "不確定的問題，回答:<default_response>已通知小編進行回覆，請稍等。<default_response>",
-      "examples": "Q: 請問現在有什麼特別的促銷活動嗎？\nA: 您好！我們現在有雙十一優惠活動，購買滿 1000 元可以享受 8 折優惠，還有額外的滿減活動，買得越多，省得越多！快來看看吧！\n\nQ: 我看到你們有聖誕節特惠活動，能詳細說說嗎？\nA: 當然可以！我們為了慶祝聖誕節，推出了 \"聖誕特惠\" 活動，從即日起至聖誕節，所有商品一律 9 折，並且在聖誕節當天還有額外的抽獎活動，獎品豐富，歡迎參加！\n\nQ: 你們的雙十二活動什麼時候開始？有什麼特別的優惠？\nA: 您好！我們的雙十二活動將於 12 月 12 日正式開始，屆時將有全店商品 7 折起，還有滿額贈活動，購買滿 1500 元送限量聖誕禮盒一份，數量有限，先搶先贏哦！",
+      "examples": "",
       "rules": [
         {
           "keywords": "折扣",
@@ -86,25 +104,43 @@
     },
     "chat": {
       "systemPrompt": "不確定的問題，回答:<default_response>已通知小編進行回覆，請稍等。<default_response>",
-      "examples": "Q：今天天氣如何?\nA：今天是晴天，天氣很好。\nQ：你吃飽了嗎?\nA：忙的沒時間吃飯呢。",
+      "examples": "",
       "rules": [
         {
           "keywords": "燈具設定：尼特利(尼燈)",
           "response": "請參閱 https://www.bilibili.com/video/BV1JV4y1G7jJ/?spm_id_from=333.337.search-card.all.click",
-          "ratio": 0,
-          "style": "專業"
+          "ratio": 100,
+          "style": "親切"
         },
         {
           "keywords": "燈具設定：威爾康(威燈)",
           "response": "請參閱 https://youtu.be/K8SlESCYH3M?si=IH6_u1gqr8CXFULM",
-          "ratio": 0,
-          "style": "專業"
+          "ratio": 100,
+          "style": "親切"
         },
         {
           "keywords": "故障維修",
           "response": "已通知技術老編進行回覆，請稍等。",
-          "ratio": 0,
-          "style": "專業"
+          "ratio": 100,
+          "style": "親切"
+        },
+        {
+          "keywords": "有門市嗎?",
+          "response": "目前沒有門市，只有辦公室，可以提貨，但沒有展間。",
+          "ratio": 100,
+          "style": "親切"
+        },
+        {
+          "keywords": "請問",
+          "response": "直接把問題說出來會比較好",
+          "ratio": 100,
+          "style": "幽默"
+        },
+        {
+          "keywords": "缸子尺寸 燈具挑選 推薦",
+          "response": "請報出缸子完整尺寸規格，這對挑選燈具有很大的影響，主要就是水深問題，水的折射率很高，越身的缸子對燈具的要求就越高，其次是有沒有邊條，限高等因素。",
+          "ratio": 100,
+          "style": "親切"
         }
       ]
     },

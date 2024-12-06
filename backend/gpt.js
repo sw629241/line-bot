@@ -107,7 +107,31 @@ export async function analyzeMessage(userMessage, categories) {
                 max_tokens: 800
             });
 
-            const result = JSON.parse(response.choices[0]?.message?.content);
+            console.log('GPT 回應:', response.choices[0]?.message?.content);
+
+            let result;
+            try {
+                result = JSON.parse(response.choices[0]?.message?.content);
+            } catch (parseError) {
+                console.error('JSON 解析錯誤:', parseError);
+                console.error('原始回應:', response.choices[0]?.message?.content);
+                
+                // 如果無法解析 JSON，創建一個默認的結果對象
+                result = {
+                    category: 'general',
+                    intent: '一般對話',
+                    confidence: 0.8,
+                    keywords: [],
+                    isSensitive: false
+                };
+            }
+            
+            // 如果檢測到敏感詞，不生成任何回應
+            if (result.isSensitive) {
+                console.log('檢測到敏感詞，不生成回應');
+                result.generatedResponse = null;
+                return result;
+            }
             
             // 如果找到匹配的規則，生成動態回應
             if (result.matchedRule) {
@@ -118,9 +142,15 @@ export async function analyzeMessage(userMessage, categories) {
                 // 生成動態回應
                 const dynamicResponse = await generateDynamicResponse(rule, fixedResponse, ratio);
                 result.generatedResponse = dynamicResponse;
+            } else {
+                // 如果沒有匹配規則，生成通用對話回應
+                const generalResponse = await generateGeneralResponse(userMessage, result.intent);
+                result.generatedResponse = generalResponse;
             }
 
+            console.log('最終結果:', result);
             return result;
+
         } catch (error) {
             console.error(`Attempt ${attempt}/${MAX_RETRIES} failed:`, error);
             
@@ -221,5 +251,44 @@ export async function testGPTResponse(message, categories) {
             success: false,
             error: error.message
         };
+    }
+}
+
+/**
+ * 生成通用對話回應
+ * @param {string} userMessage - 用戶訊息
+ * @param {string} intent - 用戶意圖
+ * @returns {Promise<string>} 生成的回應
+ */
+async function generateGeneralResponse(userMessage, intent) {
+    try {
+        const response = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                {
+                    role: "system",
+                    content: `你是一個專業的客服機器人。請以友善和專業的態度回應用戶。
+注意事項：
+1. 保持對話簡潔但有溫度
+2. 不要透露你是AI或機器人
+3. 適時使用表情符號增加親和力
+4. 回應長度控制在100字以內`
+                },
+                {
+                    role: "user",
+                    content: `用戶說：${userMessage}
+用戶意圖：${intent}
+
+請生成一個自然的回應。`
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 200
+        });
+
+        return response.choices[0]?.message?.content || '謝謝您的訊息！請問還有什麼我可以幫您的嗎？';
+    } catch (error) {
+        console.error('生成通用回應時出錯:', error);
+        return '謝謝您的訊息！請問還有什麼我可以幫您的嗎？';
     }
 }
