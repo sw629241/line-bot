@@ -141,5 +141,19 @@ export const api = {
         const result = await response.json();
         console.log('Test result:', result);
         return result;
+    },
+    
+    getBotStatus: async () => {
+        const response = await fetch('/api/bot-status');
+        return response.json();
+    },
+    
+    updateBotStatus: async (botType, enabled) => {
+        const response = await fetch(`/api/bot-status/${botType}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled })
+        });
+        return response.json();
     }
 };

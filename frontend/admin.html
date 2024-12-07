@@ -19,8 +19,18 @@
         <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
 
         <main>
-            <!-- Bot 選擇器 -->
-            <div id="botSelectorContainer"></div>
+            <!-- Bot 選擇器和開關控制 -->
+            <div class="d-flex align-items-center mb-3">
+                <div id="botSelectorContainer" class="me-3"></div>
+                <div class="form-check form-switch me-3">
+                    <input class="form-check-input bot-switch" type="checkbox" id="sxiBotSwitch" data-bot-type="sxi" checked>
+                    <label class="form-check-label" for="sxiBotSwitch">SXI Bot 啟用</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input bot-switch" type="checkbox" id="fasBotSwitch" data-bot-type="fas" checked>
+                    <label class="form-check-label" for="fasBotSwitch">FAS Bot 啟用</label>
+                </div>
+            </div>
 
             <!-- 類別標籤 -->
             <div id="categoryTabsContainer"></div>

@@ -235,4 +235,24 @@ router.post('/bots/:botId/test', rateLimiter, async (req, res) => {
     }
 });
 
+import { botStatus } from './config.js';
+
+// 獲取機器人狀態
+router.get('/bot-status', (req, res) => {
+    res.json(botStatus);
+});
+
+// 更新機器人狀態
+router.put('/bot-status/:botType', (req, res) => {
+    const { botType } = req.params;
+    const { enabled } = req.body;
+    
+    if (botType in botStatus) {
+        botStatus[botType].enabled = enabled;
+        res.json({ status: 'success', botType, enabled });
+    } else {
+        res.status(400).json({ error: 'Invalid bot type' });
+    }
+});
+
 export default router;

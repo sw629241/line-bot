@@ -42,6 +42,12 @@ export const lineConfig = {
     }
 };
 
+// 機器人狀態配置
+export const botStatus = {
+    sxi: { enabled: true },
+    fas: { enabled: true }
+};
+
 // 創建 LINE Bot 客戶端
 export const lineClients = {
     sxi: new Client(lineConfig.sxi),

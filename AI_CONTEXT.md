@@ -121,3 +121,159 @@ linebot/
    - 使用語義化版本
    - 保持清晰的提交信息
    - 使用功能分支開發
+
+## LINE Bot AI Assistant Context
+
+## Core System Overview
+- **Type**: Dual LINE Bot system (sxi-bot & fas-bot)
+- **Architecture**: Node.js backend + Web admin frontend
+- **Key Components**: GPT integration, LINE messaging API, Admin interface
+- **Deployment**: Docker containerized with Nginx reverse proxy
+
+## System Components
+
+### Message Processing Flow
+1. User message → LINE API
+2. Bot receives → GPT intent analysis
+3. Bot processes → LINE API response
+
+### Core Functions
+```javascript
+{
+  "messageTypes": {
+    "products": "Product information queries",
+    "prices": "Price inquiries",
+    "shipping": "Shipping and delivery",
+    "promotions": "Promotional activities",
+    "chat": "General conversation",
+    "sensitive": "Sensitive content filtering"
+  },
+  "processingPriority": [
+    "sensitive_check",
+    "category_classification",
+    "keyword_matching",
+    "response_generation"
+  ]
+}
+```
+
+### Response Generation Logic
+```javascript
+{
+  "dynamicGeneration": {
+    "0": "Fixed response only",
+    "50": "Hybrid (fixed + generated)",
+    "100": "Full regeneration with core message"
+  },
+  "languageStyles": {
+    "professional": "Formal business style",
+    "friendly": "Warm and approachable",
+    "cute": "Playful and adorable",
+    "humorous": "Light and witty"
+  }
+}
+```
+
+## Critical Paths
+
+### File Structure
+```plaintext
+/backend
+  - api.js         # API endpoints
+  - gpt.js         # GPT integration
+  - line.js        # LINE bot logic
+  - server.js      # Server config
+/frontend
+  - admin.html     # Admin interface
+  - admin.js       # Admin logic
+  - api.js         # Frontend API
+  - messageService.js # Message handling
+```
+
+### Key Configuration Files
+```javascript
+{
+  "configFiles": {
+    ".env": "Environment variables",
+    "sxi-bot-config.json": "SXI bot settings",
+    "fas-bot-config.json": "FAS bot settings"
+  },
+  "requiredEnvVars": [
+    "LINE_CHANNEL_ACCESS_TOKEN_SXI",
+    "LINE_CHANNEL_SECRET_SXI",
+    "LINE_CHANNEL_ACCESS_TOKEN_FAS",
+    "LINE_CHANNEL_SECRET_FAS",
+    "OPENAI_API_KEY",
+    "PORT"
+  ]
+}
+```
+
+## GPT Integration Specifications
+
+### Input Context
+```javascript
+{
+  "input": {
+    "userMessage": "Raw user input",
+    "categorySettings": "All category configurations",
+    "replyRules": "All keyword-response mappings",
+    "classificationExamples": "QA examples for each category"
+  }
+}
+```
+
+### Expected Output
+```javascript
+{
+  "category": "Matched category",
+  "confidence": 0.8,
+  "intent": "Identified user intent",
+  "keywords": ["matched_keywords"],
+  "isSensitive": false,
+  "needDefaultResponse": true,
+  "generatedResponse": "Generated or fixed response"
+}
+```
+
+## Processing Rules
+
+### Category Processing Priority
+1. Sensitive content check (immediate if detected)
+2. Category classification
+3. Keyword matching
+4. Response generation
+
+### Response Generation Rules
+1. Check dynamic generation ratio
+2. Apply language style if dynamic
+3. Maintain core message integrity
+4. Follow industry standards when specified
+
+### Error Handling
+1. Default to general chat for unclassified messages
+2. Use predefined responses for uncertain cases
+3. Log all processing errors for review
+
+## System Constraints
+
+### Performance Considerations
+- Token usage optimization required
+- Batch processing of categories
+- Response time optimization
+
+### Security Requirements
+- SSL/TLS encryption mandatory
+- Environment variable protection
+- Webhook validation required
+
+## Integration Points
+
+### Webhooks
+- SXI Bot: `/webhook1`
+- FAS Bot: `/webhook2`
+
+### Admin Interface
+- Configuration management
+- Real-time preview
+- Auto-save functionality

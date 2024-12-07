@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { lineConfig } from './config.js';
+import { lineConfig, botStatus } from './config.js';
 import { analyzeMessage } from './gpt.js';
 import { readFile } from 'fs/promises';
 import { join, dirname } from 'path';
@@ -34,6 +34,12 @@ export async function handleWebhook(req, res, botType, client) {
     console.log('Headers:', JSON.stringify(req.headers, null, 2));
     
     try {
+        // 檢查機器人狀態
+        if (!botStatus[botType].enabled) {
+            console.log(`${botType} bot is disabled, ignoring webhook`);
+            return res.status(200).json({ status: 'ignored' });
+        }
+
         // 檢查 LINE 簽名
         const signature = req.get('x-line-signature');
         if (!signature) {

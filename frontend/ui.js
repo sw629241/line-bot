@@ -5,6 +5,7 @@ export class UI {
         this.currentBot = 'sxi-bot';
         this.config = null;
         this.initialized = false;
+        this.botStatus = null;
         
         // 添加類別中英文對照表
         this.categoryMap = {
@@ -24,9 +25,10 @@ export class UI {
     async init() {
         try {
             console.log('初始化 UI...');
-            // 先載入組件，再載入配置
+            // 先載入組件，再載入配置和狀態
             await this.loadComponents();
             await this.loadConfig();
+            await this.loadBotStatus();
             console.log('UI 初始化完成');
         } catch (error) {
             console.error('UI 初始化失敗:', error);
@@ -51,6 +53,92 @@ export class UI {
         } catch (error) {
             console.error('載入配置失敗:', error);
             this.showAlert('error', '載入配置失敗: ' + error.message);
+        }
+    }
+
+    async loadBotStatus() {
+        try {
+            this.botStatus = await api.getBotStatus();
+            this.updateBotSwitches();
+        } catch (error) {
+            console.error('Failed to load bot status:', error);
+            this.showAlert('error', '載入機器人狀態失敗');
+        }
+    }
+
+    updateUI() {
+        if (!this.config) {
+            console.error('無法更新 UI: 配置為空');
+            return;
+        }
+
+        console.log('開始更新 UI...');
+        const categories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
+        categories.forEach(category => {
+            console.log(`更新 ${category} 類別...`);
+            if (this.config.categories && this.config.categories[category]) {
+                const categoryConfig = this.config.categories[category];
+                
+                // 更新 GPT 設定
+                const gptPrompt = document.querySelector(`#${category}GptSettings .gpt-prompt`);
+                const gptExamples = document.querySelector(`#${category}GptSettings .gpt-examples`);
+                
+                if (gptPrompt) {
+                    console.log(`設置 ${category} GPT 提示詞:`, categoryConfig.systemPrompt);
+                    gptPrompt.value = categoryConfig.systemPrompt || '';
+                } else {
+                    console.error(`找不到 ${category} GPT 提示詞輸入框`);
+                }
+                
+                if (gptExamples) {
+                    console.log(`設置 ${category} GPT 範例:`, categoryConfig.examples);
+                    gptExamples.value = categoryConfig.examples || '';
+                } else {
+                    console.error(`找不到 ${category} GPT 範例輸入框`);
+                }
+
+                // 更新規則列表
+                console.log(`更新 ${category} 規則列表:`, categoryConfig.rules);
+                const rulesList = document.querySelector(`#${category}ReplyRules .rule-list`);
+                if (rulesList) {
+                    this.updateRulesList(categoryConfig.rules || [], rulesList);
+                } else {
+                    console.error(`找不到 ${category} 規則列表容器`);
+                }
+            } else {
+                console.warn(`找不到 ${category} 類別配置`);
+            }
+        });
+
+        // 更新 Bot 選擇器
+        const botSelector = document.getElementById('botSelector');
+        if (botSelector) {
+            console.log('更新 Bot 選擇器:', this.currentBot);
+            botSelector.value = this.currentBot;
+        } else {
+            console.error('找不到 Bot 選擇器');
+        }
+        
+        console.log('UI 更新完成');
+    }
+
+    updateBotSwitches() {
+        const sxiSwitch = document.getElementById('sxiBotSwitch');
+        const fasSwitch = document.getElementById('fasBotSwitch');
+        
+        if (sxiSwitch) sxiSwitch.checked = this.botStatus.sxi.enabled;
+        if (fasSwitch) fasSwitch.checked = this.botStatus.fas.enabled;
+    }
+
+    async toggleBot(botType, enabled) {
+        try {
+            await api.updateBotStatus(botType, enabled);
+            this.showAlert('success', `${botType} bot ${enabled ? '啟用' : '停用'}成功`);
+        } catch (error) {
+            console.error('Failed to update bot status:', error);
+            this.showAlert('error', '更新機器人狀態失敗');
+            // 回復開關狀態
+            this.updateBotSwitches();
         }
     }
 
@@ -146,62 +234,6 @@ export class UI {
             this.showAlert('error', '載入組件失敗：' + error.message);
             throw error;
         }
-    }
-
-    updateUI() {
-        if (!this.config) {
-            console.error('無法更新 UI: 配置為空');
-            return;
-        }
-
-        console.log('開始更新 UI...');
-        const categories = ['products', 'prices', 'shipping', 'promotions', 'chat', 'sensitive'];
-        categories.forEach(category => {
-            console.log(`更新 ${category} 類別...`);
-            if (this.config.categories && this.config.categories[category]) {
-                const categoryConfig = this.config.categories[category];
-                
-                // 更新 GPT 設定
-                const gptPrompt = document.querySelector(`#${category}GptSettings .gpt-prompt`);
-                const gptExamples = document.querySelector(`#${category}GptSettings .gpt-examples`);
-                
-                if (gptPrompt) {
-                    console.log(`設置 ${category} GPT 提示詞:`, categoryConfig.systemPrompt);
-                    gptPrompt.value = categoryConfig.systemPrompt || '';
-                } else {
-                    console.error(`找不到 ${category} GPT 提示詞輸入框`);
-                }
-                
-                if (gptExamples) {
-                    console.log(`設置 ${category} GPT 範例:`, categoryConfig.examples);
-                    gptExamples.value = categoryConfig.examples || '';
-                } else {
-                    console.error(`找不到 ${category} GPT 範例輸入框`);
-                }
-
-                // 更新規則列表
-                console.log(`更新 ${category} 規則列表:`, categoryConfig.rules);
-                const rulesList = document.querySelector(`#${category}ReplyRules .rule-list`);
-                if (rulesList) {
-                    this.updateRulesList(categoryConfig.rules || [], rulesList);
-                } else {
-                    console.error(`找不到 ${category} 規則列表容器`);
-                }
-            } else {
-                console.warn(`找不到 ${category} 類別配置`);
-            }
-        });
-
-        // 更新 Bot 選擇器
-        const botSelector = document.getElementById('botSelector');
-        if (botSelector) {
-            console.log('更新 Bot 選擇器:', this.currentBot);
-            botSelector.value = this.currentBot;
-        } else {
-            console.error('找不到 Bot 選擇器');
-        }
-        
-        console.log('UI 更新完成');
     }
 
     updateRulesList(rules, container) {
@@ -409,6 +441,15 @@ export class UI {
         clearHistoryButtons.forEach(button => {
             button.addEventListener('click', () => {
                 this.clearHistory();
+            });
+        });
+
+        // 機器人狀態切換事件
+        document.querySelectorAll('.bot-switch').forEach(button => {
+            button.addEventListener('change', async (event) => {
+                const botType = event.target.dataset.botType;
+                const enabled = event.target.checked;
+                await this.toggleBot(botType, enabled);
             });
         });
 
